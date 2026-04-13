@@ -50,7 +50,8 @@ export default function Home() {
             year === selectedDate.getFullYear();
 
           if (isSelected) {
-            dayBtn.className = "py-4 text-[11px] bg-primary text-on-primary font-bold";
+            dayBtn.className =
+              "py-4 text-[11px] bg-primary text-on-primary font-bold";
           } else if (isToday) {
             dayBtn.classList.add("text-primary", "border-primary/20");
           }
@@ -82,7 +83,10 @@ export default function Home() {
     <div className="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary">
       <nav className="fixed top-0 z-50 w-full glass-nav border-b border-outline-variant/10">
         <div className="flex justify-between items-center w-full px-8 py-4 max-w-[1600px] mx-auto">
-          <div className="text-2xl font-bold font-['Newsreader'] text-[#e9c349]" style={{}}>
+          <div
+            className="text-2xl font-bold font-['Newsreader'] text-[#e9c349]"
+            style={{}}
+          >
             Maximus
           </div>
 
@@ -132,7 +136,8 @@ export default function Home() {
                 className="text-5xl md:text-6xl font-headline font-extrabold text-on-surface leading-tight mb-2"
                 style={{}}
               >
-                Rise above.<br />
+                Rise above.
+                <br />
                 <span className="text-primary italic" style={{}}>
                   Rise Sharp.
                 </span>
@@ -195,10 +200,16 @@ export default function Home() {
                 <div className="w-full flex flex-col md:flex-row gap-8 items-start justify-between">
                   <div className="max-w-xs">
                     <div className="flex items-center gap-3 mb-4">
-                      <span className="material-symbols-outlined text-primary text-2xl" style={{}}>
+                      <span
+                        className="material-symbols-outlined text-primary text-2xl"
+                        style={{}}
+                      >
                         calendar_month
                       </span>
-                      <h3 className="text-xl font-headline font-bold" style={{}}>
+                      <h3
+                        className="text-xl font-headline font-bold"
+                        style={{}}
+                      >
                         Agendamentos inteligentes
                       </h3>
                     </div>
@@ -207,7 +218,9 @@ export default function Home() {
                       className="text-on-surface-variant text-sm leading-relaxed mb-6"
                       style={{}}
                     >
-                      Elimine reservas duplicadas e horários vagos com um calendário intuitivo que se adapta aos ritmos e especialidades individuais de seus barbeiros.
+                      Elimine reservas duplicadas e horários vagos com um
+                      calendário intuitivo que se adapta aos ritmos e
+                      especialidades individuais de seus barbeiros.
                     </p>
 
                     <button
@@ -215,7 +228,10 @@ export default function Home() {
                       style={{}}
                     >
                       Sua barbearia como uma sinfonia
-                      <span className="material-symbols-outlined text-sm" style={{}}>
+                      <span
+                        className="material-symbols-outlined text-sm"
+                        style={{}}
+                      >
                         arrow_forward
                       </span>
                     </button>
@@ -241,7 +257,10 @@ export default function Home() {
                             id="prev-month"
                             style={{}}
                           >
-                            <span className="material-symbols-outlined" style={{}}>
+                            <span
+                              className="material-symbols-outlined"
+                              style={{}}
+                            >
                               chevron_left
                             </span>
                           </button>
@@ -251,7 +270,10 @@ export default function Home() {
                             id="next-month"
                             style={{}}
                           >
-                            <span className="material-symbols-outlined" style={{}}>
+                            <span
+                              className="material-symbols-outlined"
+                              style={{}}
+                            >
                               chevron_right
                             </span>
                           </button>
@@ -259,121 +281,235 @@ export default function Home() {
                       </div>
 
                       <div className="grid grid-cols-7 gap-px text-center mb-1">
-                        <div className="text-[9px] font-bold uppercase tracking-widest text-outline py-2" style={{}}>
+                        <div
+                          className="text-[9px] font-bold uppercase tracking-widest text-outline py-2"
+                          style={{}}
+                        >
                           Dom
                         </div>
-                        <div className="text-[9px] font-bold uppercase tracking-widest text-outline py-2" style={{}}>
+                        <div
+                          className="text-[9px] font-bold uppercase tracking-widest text-outline py-2"
+                          style={{}}
+                        >
                           Seg
                         </div>
-                        <div className="text-[9px] font-bold uppercase tracking-widest text-outline py-2" style={{}}>
+                        <div
+                          className="text-[9px] font-bold uppercase tracking-widest text-outline py-2"
+                          style={{}}
+                        >
                           Ter
                         </div>
-                        <div className="text-[9px] font-bold uppercase tracking-widest text-outline py-2" style={{}}>
+                        <div
+                          className="text-[9px] font-bold uppercase tracking-widest text-outline py-2"
+                          style={{}}
+                        >
                           Qua
                         </div>
-                        <div className="text-[9px] font-bold uppercase tracking-widest text-outline py-2" style={{}}>
+                        <div
+                          className="text-[9px] font-bold uppercase tracking-widest text-outline py-2"
+                          style={{}}
+                        >
                           Qui
                         </div>
-                        <div className="text-[9px] font-bold uppercase tracking-widest text-outline py-2" style={{}}>
+                        <div
+                          className="text-[9px] font-bold uppercase tracking-widest text-outline py-2"
+                          style={{}}
+                        >
                           Sex
                         </div>
-                        <div className="text-[9px] font-bold uppercase tracking-widest text-outline py-2" style={{}}>
+                        <div
+                          className="text-[9px] font-bold uppercase tracking-widest text-outline py-2"
+                          style={{}}
+                        >
                           Sab
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-7 gap-px" id="calendar-grid">
+                      <div
+                        className="grid grid-cols-7 gap-px"
+                        id="calendar-grid"
+                      >
                         <div></div>
                         <div></div>
                         <div></div>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           1
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           2
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           3
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           4
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           5
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           6
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           7
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           8
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           9
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           10
                         </button>
-                        <button className="py-4 text-[11px] bg-primary text-on-primary font-bold" style={{}}>
+                        <button
+                          className="py-4 text-[11px] bg-primary text-on-primary font-bold"
+                          style={{}}
+                        >
                           11
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           12
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           13
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           14
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           15
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           16
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           17
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           18
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           19
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           20
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           21
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           22
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           23
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           24
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           25
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           26
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           27
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           28
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           29
                         </button>
-                        <button className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium" style={{}}>
+                        <button
+                          className="py-4 text-[11px] transition-all hover:bg-primary/10 border border-transparent font-medium"
+                          style={{}}
+                        >
                           30
                         </button>
                       </div>
@@ -384,52 +520,80 @@ export default function Home() {
 
               <div className="md:col-span-4 bg-surface-container-high p-6 border border-outline-variant/10 hover:border-primary/30 transition-all cursor-pointer group">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="material-symbols-outlined text-primary text-2xl" style={{}}>
+                  <span
+                    className="material-symbols-outlined text-primary text-2xl"
+                    style={{}}
+                  >
                     groups
                   </span>
-                  <span className="text-[10px] font-bold text-outline uppercase tracking-widest group-hover:text-primary" style={{}}>
+                  <span
+                    className="text-[10px] font-bold text-outline uppercase tracking-widest group-hover:text-primary"
+                    style={{}}
+                  >
                     Gerenciamento
                   </span>
                 </div>
                 <h3 className="text-lg font-headline font-bold mb-2" style={{}}>
                   Gerenciamento de Equipe
                 </h3>
-                <p className="text-on-surface-variant text-xs leading-relaxed" style={{}}>
+                <p
+                  className="text-on-surface-variant text-xs leading-relaxed"
+                  style={{}}
+                >
                   Acompanhe e gerencie agendamentos e membros da equipe.
                 </p>
               </div>
 
               <div className="md:col-span-4 bg-surface-container-highest p-6 border border-outline-variant/10 hover:border-primary/30 transition-all cursor-pointer group">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="material-symbols-outlined text-primary text-2xl" style={{}}>
+                  <span
+                    className="material-symbols-outlined text-primary text-2xl"
+                    style={{}}
+                  >
                     loyalty
                   </span>
-                  <span className="text-[10px] font-bold text-outline uppercase tracking-widest group-hover:text-primary" style={{}}>
+                  <span
+                    className="text-[10px] font-bold text-outline uppercase tracking-widest group-hover:text-primary"
+                    style={{}}
+                  >
                     Clientes
                   </span>
                 </div>
                 <h3 className="text-lg font-headline font-bold mb-2" style={{}}>
                   Lealdade dos Clientes
                 </h3>
-                <p className="text-on-surface-variant text-xs leading-relaxed" style={{}}>
+                <p
+                  className="text-on-surface-variant text-xs leading-relaxed"
+                  style={{}}
+                >
                   Mantenha seus clientes fiéis à sua barbearia.
                 </p>
               </div>
 
               <div className="md:col-span-4 bg-surface-container-low p-6 border border-outline-variant/10 hover:border-primary/30 transition-all cursor-pointer group">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="material-symbols-outlined text-primary text-2xl" style={{}}>
+                  <span
+                    className="material-symbols-outlined text-primary text-2xl"
+                    style={{}}
+                  >
                     monitoring
                   </span>
-                  <span className="text-[10px] font-bold text-outline uppercase tracking-widest group-hover:text-primary" style={{}}>
+                  <span
+                    className="text-[10px] font-bold text-outline uppercase tracking-widest group-hover:text-primary"
+                    style={{}}
+                  >
                     Relatórios
                   </span>
                 </div>
                 <h3 className="text-lg font-headline font-bold mb-2" style={{}}>
                   Análises em tempo real
                 </h3>
-                <p className="text-on-surface-variant text-xs leading-relaxed" style={{}}>
-                  Veja em tempo real os agendamentos, serviços e profissionais reservados, tudo em um painel intuitivo.
+                <p
+                  className="text-on-surface-variant text-xs leading-relaxed"
+                  style={{}}
+                >
+                  Veja em tempo real os agendamentos, serviços e profissionais
+                  reservados, tudo em um painel intuitivo.
                 </p>
               </div>
             </div>
@@ -440,7 +604,10 @@ export default function Home() {
       <footer className="bg-[#110e08] py-12 border-t border-outline-variant/10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 w-full px-8 max-w-[1600px] mx-auto">
           <div>
-            <div className="text-xl font-bold font-['Newsreader'] text-[#e9c349] mb-4" style={{}}>
+            <div
+              className="text-xl font-bold font-['Newsreader'] text-[#e9c349] mb-4"
+              style={{}}
+            >
               Maximus
             </div>
             <p
