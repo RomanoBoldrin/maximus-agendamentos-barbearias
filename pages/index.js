@@ -218,7 +218,7 @@ export default function Home() {
                       className="text-on-surface-variant text-sm leading-relaxed mb-6"
                       style={{}}
                     >
-                      Elimine reservas duplicadas e horários vagos com um
+                      Elimine reservas duplicadas, filas e horários vagos com um
                       calendário intuitivo que se adapta aos ritmos e
                       especialidades individuais de seus barbeiros.
                     </p>
