@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "next dev",
     "lint:check": "prettier --check .",
-    "lint:fix": "prettier --write ."
+    "lint:fix": "prettier --write .",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "author": "",
   "license": "MIT",
@@ -19,6 +21,7 @@
     "@types/node": "25.6.0",
     "@types/react": "19.2.14",
     "autoprefixer": "^10.4.27",
+    "jest": "^30.3.0",
     "postcss": "^8.5.9",
     "prettier": "^3.8.2",
     "tailwindcss": "^4.2.2",
