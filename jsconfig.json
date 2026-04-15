@@ -1,0 +1,12 @@
+/*
+Reference the docs: https://nextjs.org/docs/pages/getting-started/installation
+*/
+
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  }
+}

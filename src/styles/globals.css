@@ -1,25 +1,19 @@
-.body-text {
-  width: 100%;
-  color: wheat;
-  background-color: black;
-  margin-top: 20px;
-  margin-left: 16px;
-  text-align: center;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-.header-2 {
-  margin-top: 30px;
+.material-symbols-outlined {
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
 }
-
-.hero-landing-page-img {
-  border-radius: 40px;
-  width: 65%;
+.razor-divider {
+  border-left: 4px solid #e9c349;
+  padding-left: 1.5rem;
 }
-
-.hero-landing-page-img:hover {
-  filter: brightness(140%);
-}
-
-.cta-github {
-  margin-bottom: 0px;
+.glass-nav {
+  backdrop-filter: blur(12px);
+  background: rgba(22, 19, 12, 0.85);
 }
