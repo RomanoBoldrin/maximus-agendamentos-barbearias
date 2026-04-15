@@ -1,0 +1,25 @@
+.body-text {
+  width: 100%;
+  color: wheat;
+  background-color: black;
+  margin-top: 20px;
+  margin-left: 16px;
+  text-align: center;
+}
+
+.header-2 {
+  margin-top: 30px;
+}
+
+.hero-landing-page-img {
+  border-radius: 40px;
+  width: 65%;
+}
+
+.hero-landing-page-img:hover {
+  filter: brightness(140%);
+}
+
+.cta-github {
+  margin-bottom: 0px;
+}
