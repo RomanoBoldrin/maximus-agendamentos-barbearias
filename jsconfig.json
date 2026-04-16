@@ -1,5 +1,10 @@
 /*
-Reference the docs: https://nextjs.org/docs/pages/getting-started/installation
+This file defines the root directory for this project
+
+Reference the docs:
+- https://code.visualstudio.com/docs/languages/jsconfig
+- https://nextjs.org/docs/pages/getting-started/installation
+
 */
 
 {
@@ -7,6 +12,7 @@ Reference the docs: https://nextjs.org/docs/pages/getting-started/installation
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
-  }
+    },
+  },
+  "exclude": ["node_modules"]
 }
