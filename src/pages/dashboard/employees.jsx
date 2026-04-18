@@ -209,21 +209,6 @@ export default function DashboardEmployeesPage() {
 
           <div className="absolute inset-0 bg-gradient-to-r from-surface-container-low via-transparent to-transparent lg:block hidden" />
           <div className="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent lg:hidden block" />
-
-          {/* Decorative Overlay */}
-          <div className="absolute bottom-12 right-12 text-right hidden md:block">
-            <div className="h-[2px] w-24 bg-primary ml-auto mb-4" />
-
-            <p className="font-headline italic text-3xl text-on-surface/90 leading-tight">
-              “A arte não está no corte.
-              <br />
-              Está na presença.”
-            </p>
-
-            <p className="text-[10px] uppercase tracking-widest text-primary mt-2 font-label">
-              Filosofia Maximus
-            </p>
-          </div>
         </div>
       </div>
     </>
