@@ -4,10 +4,119 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum AccessLevel {
+  admin
+  barber
+}
+
+enum AppointmentStatus {
+  Agendado
+  Concluído
+  Cancelado
+  Faltou
+}
+
+model Client {
+  client_id    Int      @id @default(autoincrement())
+  client_name  String   @db.VarChar(100)
+  client_phone String?  @db.VarChar(20)
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @default(now())
+
+  appointments Appointment[]
+
+  @@map("clients")
+}
+
+model Barber {
+  barber_id    Int      @id @default(autoincrement())
+  barber_name  String   @db.VarChar(100)
+  phone_number String?  @db.VarChar(20)
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @default(now())
+
+  appointments Appointment[]
+  user         User?
+
+  @@map("barbers")
+}
+
+model Service {
+  service_id          Int      @id @default(autoincrement())
+  service_name        String   @db.VarChar(80)
+  service_description String?  @db.VarChar(100)
+  duration            Int
+  price               Decimal  @db.Decimal(10, 2)
+  is_active           Boolean  @default(true)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @default(now())
+
+  appointment_services AppointmentService[]
+
+  @@map("services")
+}
+
+model User {
+  user_id          Int         @id @default(autoincrement())
+  username         String      @unique @db.VarChar(50)
+  password_hash    String      @db.VarChar(255)
+  access_level     AccessLevel @default(barber)
+  linked_barber_id Int?        @unique
+  is_active        Boolean     @default(true)
+  created_at       DateTime    @default(now())
+  updated_at       DateTime    @default(now())
+
+  barber Barber? @relation(fields: [linked_barber_id], references: [barber_id], onDelete: SetNull)
+
+  @@map("users")
+}
+
+model Appointment {
+  appointment_id       Int               @id @default(autoincrement())
+  appointment_datetime DateTime
+  total_duration       Int               @default(0)
+  status               AppointmentStatus @default(Agendado)
+
+  client_id Int
+  barber_id Int
+
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  client Client @relation(fields: [client_id], references: [client_id], onDelete: Restrict)
+  barber Barber @relation(fields: [barber_id], references: [barber_id], onDelete: Restrict)
+
+  appointment_services AppointmentService[]
+
+  @@unique([barber_id, appointment_datetime], name: "uq_barber_datetime")
+  @@index([barber_id], name: "idx_appointments_barber")
+  @@index([client_id], name: "idx_appointments_client")
+  @@index([appointment_datetime], name: "idx_appointments_datetime")
+
+  @@map("appointments")
+}
+
+model AppointmentService {
+  appointment_id Int
+  service_id     Int
+
+  service_price    Decimal @db.Decimal(10, 2)
+  service_duration Int
+
+  appointment Appointment @relation(fields: [appointment_id], references: [appointment_id], onDelete: Cascade)
+  service     Service     @relation(fields: [service_id], references: [service_id], onDelete: Restrict)
+
+  @@id([appointment_id, service_id])
+
+  @@map("appointment_services")
 }
