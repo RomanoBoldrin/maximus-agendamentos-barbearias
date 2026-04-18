@@ -34,9 +34,11 @@ export default function DashboardSidebar({ collapsed = false }) {
     >
       <div className="px-6 py-8">
         <div className="flex flex-col">
+        <Link href={"../../home"}>
           <span className="text-2xl font-bold font-serif text-[#e9c349] uppercase leading-none">
             {collapsed ? "M" : "Maximus"}
           </span>
+        </Link>
 
           {!collapsed && (
             <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-[#e9e1d6]/50 mt-1 font-label">
