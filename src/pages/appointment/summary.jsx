@@ -30,7 +30,9 @@ function TopNavbar() {
 }
 
 function InConstruction() {
-  return <h1 className="text-center">Esta página ainda está sendo construída :D</h1>;
+  return (
+    <h1 className="text-center">Esta página ainda está sendo construída :D</h1>
+  );
 }
 
 export default function Summary() {

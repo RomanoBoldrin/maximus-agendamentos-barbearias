@@ -5,7 +5,9 @@ export default function DashboardTopbar({
   return (
     <header
       className={`flex justify-between items-center w-full px-8 h-16 fixed top-0 z-30 bg-[#16130c]/80 backdrop-blur-md shadow-[0_20px_50px_rgba(17,14,8,0.4)] transition-all duration-300 ${
-        collapsed ? "ml-20 max-w-[calc(100%-5rem)]" : "ml-64 max-w-[calc(100%-16rem)]"
+        collapsed
+          ? "ml-20 max-w-[calc(100%-5rem)]"
+          : "ml-64 max-w-[calc(100%-16rem)]"
       }`}
     >
       <div className="flex items-center gap-4">

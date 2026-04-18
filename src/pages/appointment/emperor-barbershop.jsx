@@ -5,11 +5,11 @@ import Link from "next/link";
 function TopNavbar() {
   return (
     <header className="bg-[#2d2a22] flex justify-between items-center w-full px-8 py-6 max-w-full sticky top-0 z-50">
-    <Link href={"../home"}>
-      <div className="font-serif text-3xl font-bold tracking-tighter text-[#e9c349]">
-        MAXIMUS
-      </div>
-    </Link>
+      <Link href={"../home"}>
+        <div className="font-serif text-3xl font-bold tracking-tighter text-[#e9c349]">
+          MAXIMUS
+        </div>
+      </Link>
 
       <nav className="hidden md:flex gap-12">
         <div className="hidden md:flex items-center gap-8">
@@ -29,15 +29,15 @@ function TopNavbar() {
           </Link>
         </div>
       </nav>
-    
-    <Link href={"summary"}>
-      <button
-        type="button"
-        className="bg-primary text-on-primary font-bold px-8 py-3 active:opacity-70 active:scale-95 transition-all"
-      >
-        AGENDAR
-      </button>
-    </Link>
+
+      <Link href={"summary"}>
+        <button
+          type="button"
+          className="bg-primary text-on-primary font-bold px-8 py-3 active:opacity-70 active:scale-95 transition-all"
+        >
+          AGENDAR
+        </button>
+      </Link>
     </header>
   );
 }

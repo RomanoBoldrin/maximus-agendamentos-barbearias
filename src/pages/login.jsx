@@ -130,7 +130,7 @@ export default function LoginPage() {
 
           {/* Footer Links */}
           <div className="mt-8 pt-8 border-t border-outline-variant/10 flex flex-col gap-4 text-center">
-          {/*
+            {/*
             <a
               className="text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
               href="#"
@@ -140,7 +140,10 @@ export default function LoginPage() {
            */}
             <p className="text-[10px] uppercase tracking-widest text-on-surface-variant/60">
               Novo por aqui?{" "}
-              <a className="text-primary font-bold hover:opacity-80" href="/register">
+              <a
+                className="text-primary font-bold hover:opacity-80"
+                href="/register"
+              >
                 Criar Conta
               </a>
             </p>

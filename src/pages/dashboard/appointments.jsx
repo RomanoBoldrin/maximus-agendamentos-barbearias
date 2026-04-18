@@ -29,7 +29,9 @@ function AppointmentRow({ date, time, barber, client, service, price }) {
         </span>
       </div>
 
-      <div className="text-on-surface-variant font-medium text-sm">{barber}</div>
+      <div className="text-on-surface-variant font-medium text-sm">
+        {barber}
+      </div>
 
       <div className="text-on-surface font-medium text-sm">{client}</div>
 
@@ -132,15 +134,15 @@ export default function DashboardAppointmentsPage() {
             Agendamentos
           </h2>
         </div>
-      <Link href={"../appointment/emperor-barbershop"}>
-        <button
-          type="button"
-          className="bg-primary text-on-primary px-8 py-4 font-label uppercase tracking-widest text-xs font-bold transition-all hover:translate-x-1 relative group focus:outline-none focus:ring-2 focus:ring-primary/30 w-full sm:w-auto"
-        >
-          Novo Agendamento
-          <span className="absolute inset-0 border border-primary translate-x-2 translate-y-2 -z-10 group-hover:translate-x-3 group-hover:translate-y-3 transition-transform opacity-30" />
-        </button>
-      </Link>
+        <Link href={"../appointment/emperor-barbershop"}>
+          <button
+            type="button"
+            className="bg-primary text-on-primary px-8 py-4 font-label uppercase tracking-widest text-xs font-bold transition-all hover:translate-x-1 relative group focus:outline-none focus:ring-2 focus:ring-primary/30 w-full sm:w-auto"
+          >
+            Novo Agendamento
+            <span className="absolute inset-0 border border-primary translate-x-2 translate-y-2 -z-10 group-hover:translate-x-3 group-hover:translate-y-3 transition-transform opacity-30" />
+          </button>
+        </Link>
       </div>
 
       {/* Filters */}

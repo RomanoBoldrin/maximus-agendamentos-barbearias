@@ -26,11 +26,11 @@ export default function Navbar() {
           >
             Login
           </Link>
-        <Link href={"/register"}>
-          <button className="bg-gradient-to-r from-[#e9c349] to-[#b39016] text-[#e8e0d5] px-5 py-2 font-bold uppercase tracking-widest text-[10px] hover:shadow-[2px_2px_0px_#e9e1d6] transition-all">
-            COMEÇAR AGORA
-          </button>
-        </Link>
+          <Link href={"/register"}>
+            <button className="bg-gradient-to-r from-[#e9c349] to-[#b39016] text-[#e8e0d5] px-5 py-2 font-bold uppercase tracking-widest text-[10px] hover:shadow-[2px_2px_0px_#e9e1d6] transition-all">
+              COMEÇAR AGORA
+            </button>
+          </Link>
         </div>
       </div>
     </nav>

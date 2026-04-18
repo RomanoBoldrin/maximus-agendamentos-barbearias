@@ -33,14 +33,14 @@ export default function Home() {
 
             <div className="flex flex-col sm:flex-row gap-4">
               <Link href={"/register"}>
-              <button className="bg-primary text-on-primary px-8 py-4 text-xs font-bold uppercase tracking-widest hover:shadow-[4px_4px_0px_#e9e1d6] transition-all">
-                COMEÇAR AGORA
-              </button>
+                <button className="bg-primary text-on-primary px-8 py-4 text-xs font-bold uppercase tracking-widest hover:shadow-[4px_4px_0px_#e9e1d6] transition-all">
+                  COMEÇAR AGORA
+                </button>
               </Link>
               <Link href={"/dashboard/overview"}>
-              <button className="border border-outline-variant text-on-surface px-8 py-4 text-xs font-bold uppercase tracking-widest hover:bg-surface-container-high transition-all">
-                Ver demo
-              </button>
+                <button className="border border-outline-variant text-on-surface px-8 py-4 text-xs font-bold uppercase tracking-widest hover:bg-surface-container-high transition-all">
+                  Ver demo
+                </button>
               </Link>
             </div>
           </div>
