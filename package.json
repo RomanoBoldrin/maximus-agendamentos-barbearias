@@ -4,29 +4,43 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm run services:up && npm run db:dev && next dev",
+    "services:up": "docker compose -f src/infra/compose.yaml up -d",
+    "services:stop": "docker compose -f src/infra/compose.yaml stop",
+    "services:down": "docker compose -f src/infra/compose.yaml down",
+    "services:reset": "docker compose -f src/infra/compose.yaml down -v && docker compose -f src/infra/compose.yaml up -d",
+    "db:dev": "npx prisma migrate dev",
+    "db:deploy": "npx prisma migrate deploy && npx prisma generate",
+    "db:studio": "npx prisma studio",
+    "db:generate": "npx prisma generate",
+    "db:push": "npx prisma db push",
     "lint:check": "prettier --check .",
-    "lint:fix": "prettier --write .",
+    "lint:fix": "prettier . --write --ignore-path=.prettierignore",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watchAll"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@prisma/adapter-pg": "^7.7.0",
+    "@prisma/client": "^7.7.0",
     "@tailwindcss/postcss": "^4.2.2",
+    "dotenv": "^17.4.2",
     "next": "^16.2.3",
+    "pg": "^8.20.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },
   "devDependencies": {
     "@tailwindcss/container-queries": "^0.1.1",
     "@tailwindcss/forms": "^0.5.11",
-    "@types/node": "25.6.0",
-    "@types/react": "19.2.14",
     "autoprefixer": "^10.4.27",
+    "cross-env": "^10.1.0",
     "jest": "^30.3.0",
-    "postcss": "^8.5.9",
+    "postcss": "^8.5.10",
     "prettier": "^3.8.2",
-    "tailwindcss": "^4.2.2"
+    "prisma": "^7.7.0",
+    "tailwindcss": "^4.2.2",
+    "wait-on": "^9.0.5"
   }
 }
