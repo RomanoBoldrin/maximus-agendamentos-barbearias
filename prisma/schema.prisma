@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -24,12 +22,12 @@ enum AppointmentStatus {
 }
 
 model Client {
-  client_id    Int      @id @default(autoincrement())
-  client_name  String   @db.VarChar(100)
-  client_phone String?  @db.VarChar(20)
-  is_active    Boolean  @default(true)
-  created_at   DateTime @default(now())
-  updated_at   DateTime @default(now())
+  clientId    String   @id @default(uuid()) @db.Uuid
+  clientName  String   @db.VarChar(100)
+  clientPhone String?  @db.VarChar(20)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   appointments Appointment[]
 
@@ -37,12 +35,12 @@ model Client {
 }
 
 model Barber {
-  barber_id    Int      @id @default(autoincrement())
-  barber_name  String   @db.VarChar(100)
-  phone_number String?  @db.VarChar(20)
-  is_active    Boolean  @default(true)
-  created_at   DateTime @default(now())
-  updated_at   DateTime @default(now())
+  barberId    String   @id @default(uuid()) @db.Uuid
+  barberName  String   @db.VarChar(100)
+  phoneNumber String?  @db.VarChar(20)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   appointments Appointment[]
   user         User?
@@ -51,14 +49,14 @@ model Barber {
 }
 
 model Service {
-  service_id          Int      @id @default(autoincrement())
-  service_name        String   @db.VarChar(80)
-  service_description String?  @db.VarChar(100)
-  duration            Int
-  price               Decimal  @db.Decimal(10, 2)
-  is_active           Boolean  @default(true)
-  created_at          DateTime @default(now())
-  updated_at          DateTime @default(now())
+  serviceId          String   @id @default(uuid()) @db.Uuid
+  serviceName        String   @db.VarChar(80)
+  serviceDescription String?  @db.VarChar(100)
+  duration           Int
+  price              Decimal  @db.Decimal(10, 2)
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   appointment_services AppointmentService[]
 
@@ -66,56 +64,54 @@ model Service {
 }
 
 model User {
-  user_id          Int         @id @default(autoincrement())
-  username         String      @unique @db.VarChar(50)
-  password_hash    String      @db.VarChar(255)
-  access_level     AccessLevel @default(barber)
-  linked_barber_id Int?        @unique
-  is_active        Boolean     @default(true)
-  created_at       DateTime    @default(now())
-  updated_at       DateTime    @default(now())
+  userId         String      @id @default(uuid()) @db.Uuid
+  username       String      @unique @db.VarChar(50)
+  password_hash  String      @db.VarChar(255)
+  accessLevel    AccessLevel @default(barber)
+  linkedBarberId String?     @unique @db.Uuid
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
-  barber Barber? @relation(fields: [linked_barber_id], references: [barber_id], onDelete: SetNull)
+  barber Barber? @relation(fields: [linkedBarberId], references: [barberId], onDelete: SetNull)
 
   @@map("users")
 }
 
 model Appointment {
-  appointment_id       Int               @id @default(autoincrement())
-  appointment_datetime DateTime
-  total_duration       Int               @default(0)
-  status               AppointmentStatus @default(Agendado)
+  appointmentId       String            @id @default(uuid()) @db.Uuid
+  appointmentDatetime DateTime
+  totalDuration       Int               @default(0)
+  status              AppointmentStatus @default(Agendado)
 
-  client_id Int
-  barber_id Int
+  clientId String @db.Uuid
+  barberId String @db.Uuid
 
-  created_at DateTime @default(now())
-  updated_at DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  client Client @relation(fields: [client_id], references: [client_id], onDelete: Restrict)
-  barber Barber @relation(fields: [barber_id], references: [barber_id], onDelete: Restrict)
+  client Client @relation(fields: [clientId], references: [clientId], onDelete: Restrict)
+  barber Barber @relation(fields: [barberId], references: [barberId], onDelete: Restrict)
 
   appointment_services AppointmentService[]
 
-  @@unique([barber_id, appointment_datetime], name: "uq_barber_datetime")
-  @@index([barber_id], name: "idx_appointments_barber")
-  @@index([client_id], name: "idx_appointments_client")
-  @@index([appointment_datetime], name: "idx_appointments_datetime")
-
+  @@unique([barberId, appointmentDatetime], name: "uqBarberDatetime")
+  @@index([barberId], name: "idxAppointmentsBarber")
+  @@index([clientId], name: "idxAppointmentsClient")
+  @@index([appointmentDatetime], name: "idxAppointmentsDatetime")
   @@map("appointments")
 }
 
 model AppointmentService {
-  appointment_id Int
-  service_id     Int
+  appointmentId String @db.Uuid
+  serviceId     String @db.Uuid
 
-  service_price    Decimal @db.Decimal(10, 2)
-  service_duration Int
+  servicePrice    Decimal @db.Decimal(10, 2)
+  serviceDuration Int
 
-  appointment Appointment @relation(fields: [appointment_id], references: [appointment_id], onDelete: Cascade)
-  service     Service     @relation(fields: [service_id], references: [service_id], onDelete: Restrict)
+  appointment Appointment @relation(fields: [appointmentId], references: [appointmentId], onDelete: Cascade)
+  service     Service     @relation(fields: [serviceId], references: [serviceId], onDelete: Restrict)
 
-  @@id([appointment_id, service_id])
-
+  @@id([appointmentId, serviceId])
   @@map("appointment_services")
 }
