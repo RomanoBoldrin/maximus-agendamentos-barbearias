@@ -4,12 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "npm run services:up && npm run db:dev && next dev",
-    "services:up": "docker compose -f src/infra/compose.yaml up -d",
-    "services:stop": "docker compose -f src/infra/compose.yaml stop",
-    "services:down": "docker compose -f src/infra/compose.yaml down",
-    "services:reset": "docker compose -f src/infra/compose.yaml down -v && docker compose -f src/infra/compose.yaml up -d",
-    "db:dev": "npx prisma migrate dev",
+    "dev": "npm run db:dev && npm run db:generate && next dev",
+    "db:dev": "npx prisma migrate dev --name init",
     "db:deploy": "npx prisma migrate deploy && npx prisma generate",
     "db:studio": "npx prisma studio",
     "db:generate": "npx prisma generate",
@@ -22,8 +18,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@prisma/adapter-pg": "^7.7.0",
-    "@prisma/client": "^7.7.0",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "@tailwindcss/postcss": "^4.2.2",
     "dotenv": "^17.4.2",
     "next": "^16.2.3",
@@ -39,7 +35,7 @@
     "jest": "^30.3.0",
     "postcss": "^8.5.10",
     "prettier": "^3.8.2",
-    "prisma": "^7.7.0",
+    "prisma": "^7.8.0",
     "tailwindcss": "^4.2.2",
     "wait-on": "^9.0.5"
   }
