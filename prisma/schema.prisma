@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -15,16 +16,16 @@ enum AccessLevel {
 }
 
 enum AppointmentStatus {
-  Agendado
-  Concluído
-  Cancelado
-  Faltou
+  AGENDADO
+  CONCLUIDO
+  CANCELADO
+  FALTOU
 }
 
 model Client {
   clientId    String   @id @default(uuid()) @db.Uuid
   clientName  String   @db.VarChar(100)
-  clientPhone String?  @db.VarChar(20)
+  clientPhone String?  @db.VarChar(30)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -37,7 +38,7 @@ model Client {
 model Barber {
   barberId    String   @id @default(uuid()) @db.Uuid
   barberName  String   @db.VarChar(100)
-  phoneNumber String?  @db.VarChar(20)
+  phoneNumber String?  @db.VarChar(30)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -51,14 +52,14 @@ model Barber {
 model Service {
   serviceId          String   @id @default(uuid()) @db.Uuid
   serviceName        String   @db.VarChar(80)
-  serviceDescription String?  @db.VarChar(100)
+  serviceDescription String?  @db.VarChar(150)
   duration           Int
   price              Decimal  @db.Decimal(10, 2)
   isActive           Boolean  @default(true)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  appointment_services AppointmentService[]
+  appointmentServices AppointmentService[]
 
   @@map("services")
 }
@@ -66,7 +67,7 @@ model Service {
 model User {
   userId         String      @id @default(uuid()) @db.Uuid
   username       String      @unique @db.VarChar(50)
-  password_hash  String      @db.VarChar(255)
+  passwordHash   String      @map("password_hash") @db.VarChar(255)
   accessLevel    AccessLevel @default(barber)
   linkedBarberId String?     @unique @db.Uuid
   isActive       Boolean     @default(true)
@@ -82,7 +83,7 @@ model Appointment {
   appointmentId       String            @id @default(uuid()) @db.Uuid
   appointmentDatetime DateTime
   totalDuration       Int               @default(0)
-  status              AppointmentStatus @default(Agendado)
+  status              AppointmentStatus @default(AGENDADO)
 
   clientId String @db.Uuid
   barberId String @db.Uuid
@@ -93,7 +94,7 @@ model Appointment {
   client Client @relation(fields: [clientId], references: [clientId], onDelete: Restrict)
   barber Barber @relation(fields: [barberId], references: [barberId], onDelete: Restrict)
 
-  appointment_services AppointmentService[]
+  appointmentServices AppointmentService[]
 
   @@unique([barberId, appointmentDatetime], name: "uqBarberDatetime")
   @@index([barberId], name: "idxAppointmentsBarber")
@@ -113,5 +114,6 @@ model AppointmentService {
   service     Service     @relation(fields: [serviceId], references: [serviceId], onDelete: Restrict)
 
   @@id([appointmentId, serviceId])
+  @@index([serviceId], name: "idxAppointmentServicesService")
   @@map("appointment_services")
 }
