@@ -28,7 +28,7 @@
 
 
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@/generated/prisma/client.js";
+import { PrismaClient } from "@prisma/client";
 
 // Fail fast in case DATABASE_URL is not defined
 if (!process.env.DATABASE_URL) {
@@ -36,7 +36,6 @@ if (!process.env.DATABASE_URL) {
 }
 
 const connectionString = process.env.DATABASE_URL;
-
 const globalForPrisma = globalThis;
 
 export const prisma =
