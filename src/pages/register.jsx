@@ -116,9 +116,11 @@ export default function RegisterPage() {
       <div className="w-full max-w-md z-10 relative">
         {/* Branding */}
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-black text-primary uppercase tracking-widest font-headline mb-2">
-            MAXIMUS
-          </h1>
+          <Link href={"/"}>
+            <h1 className="text-3xl font-black text-primary uppercase tracking-widest font-headline mb-2">
+              MAXIMUS
+            </h1>
+          </Link>
           <p className="font-label text-xs tracking-[0.2em] text-on-surface-variant/70 uppercase">
             O Artesão Moderno
           </p>
