@@ -20,12 +20,11 @@
  * Usage:
  * - Import this `prisma` instance anywhere in the app instead of creating a new one.
  *
- *   import { prisma } from "@/infra/database.js";
+ *   import { prisma } from "@/infra/prisma.js";
  *
  * - Do NOT call `new PrismaClient()` in other files. Thanks.
  *
  */
-
 
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
