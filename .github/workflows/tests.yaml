@@ -4,11 +4,12 @@ on: pull_request
 
 jobs:
   jest:
+    name: Jest ubuntu
     runs-on: ubuntu-latest
 
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -30,8 +31,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
 
       - run: npm ci
+
       - run: npx prisma generate
-      - run: npm run test:ci
+      - run: npx prisma migrate reset --force
+
+      - run: npm run build
+
+      - name: Start Next.js server
+        run: npm run start &
+
+      - name: Wait for server
+        run: npx wait-on http://localhost:3000
+
+      - name: Run tests
+        run: npm run test

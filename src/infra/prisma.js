@@ -28,19 +28,24 @@
 
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
 
-// Fail fast in case DATABASE_URL is not defined
+console.log(process.env.DATABASE_URL);
+
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set");
 }
 
-const connectionString = process.env.DATABASE_URL;
 const globalForPrisma = globalThis;
 
 export const prisma =
   globalForPrisma.__prisma ||
   new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
+    adapter: new PrismaPg(
+      new Pool({
+        connectionString: process.env.DATABASE_URL,
+      }),
+    ),
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "warn", "error"]
