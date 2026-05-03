@@ -23,9 +23,9 @@
   "dependencies": {
     "@prisma/adapter-pg": "7.8.0",
     "@prisma/client": "7.8.0",
-    "@tailwindcss/postcss": "4.2.2",
+    "@tailwindcss/postcss": "4.2.4",
     "dotenv": "17.4.2",
-    "next": "16.2.3",
+    "next": "16.2.4",
     "pg": "8.20.0",
     "react": "19.2.5",
     "react-dom": "19.2.5"
@@ -41,7 +41,7 @@
     "@next/eslint-plugin-next": "16.2.4",
     "@tailwindcss/container-queries": "0.1.1",
     "@tailwindcss/forms": "0.5.11",
-    "autoprefixer": "10.4.27",
+    "autoprefixer": "10.5.0",
     "cross-env": "10.1.0",
     "dotenv-cli": "11.0.0",
     "eslint": "9.39.4",
@@ -54,10 +54,10 @@
     "globals": "17.6.0",
     "husky": "9.1.7",
     "jest": "30.3.0",
-    "postcss": "8.5.10",
+    "postcss": "8.5.13",
     "prettier": "3.8.3",
     "prisma": "7.8.0",
-    "tailwindcss": "4.2.2",
+    "tailwindcss": "4.2.4",
     "wait-on": "9.0.5"
   }
 }
