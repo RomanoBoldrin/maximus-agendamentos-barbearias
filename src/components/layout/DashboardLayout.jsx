@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import DashboardSidebar from "@/components/ui/dashboard/DashboardSidebar";
 import DashboardTopbar from "@/components/ui/dashboard/DashboardTopbar";
 
 export default function DashboardLayout({ children }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
 
-  useEffect(() => {
     const saved = localStorage.getItem("maximus_sidebar_collapsed");
-    if (saved === "true") setSidebarCollapsed(true);
-  }, []);
+    return saved === "true";
+  });
 
   function toggleSidebar() {
     setSidebarCollapsed((prev) => {
