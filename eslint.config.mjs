@@ -1,50 +1,99 @@
 import js from "@eslint/js";
 import globals from "globals";
-import pluginReact from "eslint-plugin-react";
+import json from "@eslint/json";
+import markdown from "@eslint/markdown";
 import css from "@eslint/css";
-import { defineConfig } from "eslint/config";
+import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
+import pluginJest from "eslint-plugin-jest";
+import prettier from "eslint-plugin-prettier";
+import prettierConfig from "eslint-config-prettier";
 
-export default defineConfig([
-  // Base JS config
+export default [
   {
-    files: ["**/*.{js,mjs,cjs,jsx}"],
-    plugins: { js },
-    extends: ["js/recommended"],
-    languageOptions: {
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-      },
-    },
+    ignores: [
+      ".next/**",
+      "node_modules/**",
+      "build/**",
+      "coverage/**",
+      ".swc/**",
+      "src/generated/**",
+      "prisma/migrations/**",
+      ".env*",
+      "dist/**",
+      "package-lock.json",
+      "jsconfig.json",
+    ],
   },
 
-  // React config
+  // Base JavaScript
   {
-    files: ["**/*.{js,jsx}"],
-    ...pluginReact.configs.flat.recommended,
+    files: ["**/*.{js,mjs,cjs,jsx}"],
+    plugins: {
+      react,
+      "react-hooks": reactHooks,
+      prettier,
+    },
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+      parserOptions: {
+        ecmaVersion: 2020,
+        sourceType: "module",
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      ...react.configs.recommended.rules,
+      ...reactHooks.configs.recommended.rules,
+      ...prettierConfig.rules,
+      "react/react-in-jsx-scope": "off",
+      "react/prop-types": "off",
+      "prettier/prettier": "warn",
+    },
     settings: {
       react: {
         version: "detect",
       },
     },
-    rules: {
-      // Fix React 17+ (no need to import React)
-      "react/react-in-jsx-scope": "off",
+  },
 
-      // Disable PropTypes (modern apps don't use it)
-      "react/prop-types": "off",
+  // Jest Tests
+  {
+    files: ["**/*.{spec,test}.js"],
+    plugins: { jest: pluginJest },
+    languageOptions: {
+      globals: pluginJest.environments.globals.globals,
+    },
+    rules: {
+      ...pluginJest.configs.recommended.rules,
+      "jest/no-disabled-tests": "warn",
+      "jest/no-focused-tests": "error",
+      "jest/no-identical-title": "error",
+      "jest/valid-expect": "error",
     },
   },
 
-  // Test files
+  // JSON Files
   {
-    files: ["**/*.test.js", "**/*.spec.js"],
-    languageOptions: {
-      globals: {
-        test: "readonly",
-        expect: "readonly",
-      },
-    },
+    files: ["**/*.json"],
+    plugins: { json },
+    language: "json/json",
+    rules: json.configs.recommended.rules,
+  },
+  {
+    files: ["**/*.jsonc"],
+    plugins: { json },
+    language: "json/jsonc",
+    rules: json.configs.recommended.rules,
+  },
+
+  // Markdown
+  {
+    files: ["**/*.md"],
+    plugins: { markdown },
+    language: "markdown/gfm",
+    rules: markdown.configs.recommended.rules,
   },
 
   // CSS
@@ -52,10 +101,6 @@ export default defineConfig([
     files: ["**/*.css"],
     plugins: { css },
     language: "css/css",
-    extends: ["css/recommended"],
-    rules: {
-      // Optional: disable overly strict browser support rule
-      "css/use-baseline": "off",
-    },
+    rules: css.configs.recommended.rules,
   },
-]);
+];

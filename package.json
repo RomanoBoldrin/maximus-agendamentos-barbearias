@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "dev": "dotenv -e .env.development -- next dev",
     "db:generate": "dotenv -e .env.development -- prisma generate",
@@ -12,7 +13,7 @@
     "build": "prisma generate && prisma migrate deploy && next build",
     "lint:prettier:check": "prettier --check .",
     "lint:prettier:fix": "prettier . --write --ignore-path=.prettierignore",
-    "lint:eslint:check": "eslint .",
+    "lint:eslint:check": "eslint . --max-warnings=0",
     "start": "next start -p 3000",
     "test": "dotenv -e .env.test -- jest --runInBand",
     "test:watch": "dotenv -e .env.test -- jest --watchAll --runInBand"
@@ -31,9 +32,11 @@
   },
   "devDependencies": {
     "@eslint/css": "^1.2.0",
+    "@eslint/eslintrc": "^3.3.5",
     "@eslint/js": "^9.39.4",
     "@eslint/json": "^1.2.0",
     "@eslint/markdown": "^8.0.1",
+    "@next/eslint-plugin-next": "^16.2.4",
     "@tailwindcss/container-queries": "^0.1.1",
     "@tailwindcss/forms": "^0.5.11",
     "autoprefixer": "^10.4.27",
@@ -43,11 +46,13 @@
     "eslint-config-next": "^16.2.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jest": "^29.15.2",
+    "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
     "jest": "^30.3.0",
     "postcss": "^8.5.10",
-    "prettier": "^3.8.2",
+    "prettier": "^3.8.3",
     "prisma": "^7.8.0",
     "tailwindcss": "^4.2.2",
     "wait-on": "^9.0.5"
