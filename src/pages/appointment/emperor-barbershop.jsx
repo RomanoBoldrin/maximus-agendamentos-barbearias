@@ -938,6 +938,7 @@ export default function EmperorBarbershopPage() {
 
       <Footer />
 
+      {/* eslint-disable-next-line react/no-unknown-property */}
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
