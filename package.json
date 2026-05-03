@@ -15,7 +15,8 @@
     "lint:eslint:check": "eslint . --max-warnings=0",
     "start": "next start -p 3000",
     "test": "dotenv -e .env.test -- jest --runInBand",
-    "test:watch": "dotenv -e .env.test -- jest --watchAll --runInBand"
+    "test:watch": "dotenv -e .env.test -- jest --watchAll --runInBand",
+    "prepare": "husky"
   },
   "author": "",
   "license": "MIT",
@@ -51,6 +52,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
+    "husky": "^9.1.7",
     "jest": "^30.3.0",
     "postcss": "^8.5.10",
     "prettier": "^3.8.3",
