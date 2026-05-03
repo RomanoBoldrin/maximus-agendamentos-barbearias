@@ -116,7 +116,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md z-10 relative">
         {/* Branding */}
         <div className="text-center mb-10">
-          <Link href={"/"}>
+          <Link href={"/home"}>
             <h1 className="text-3xl font-black text-primary uppercase tracking-widest font-headline mb-2">
               MAXIMUS
             </h1>
