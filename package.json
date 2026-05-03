@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "dev": "dotenv -e .env.development -- next dev",
     "db:generate": "dotenv -e .env.development -- prisma generate",
