@@ -1,4 +1,28 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/forms";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-surface: #16130c;
+  --color-surface-container-low: #1e1b14;
+  --color-surface-container-lowest: #110e08;
+  --color-surface-container-high: #2d2a22;
+  --color-surface-container-highest: #38342c;
+  --color-surface-variant: #38342c;
+  --color-on-surface: #e9e1d6;
+  --color-on-surface-variant: #d3c3c0;
+  --color-background: #16130c;
+  --color-on-background: #e9e1d6;
+  --color-primary: #e9c349;
+  --color-on-primary: #3c2f00;
+  --color-outline: #9c8d8b;
+  --color-outline-variant: #504442;
+
+  --font-headline: "Newsreader", serif;
+  --font-body: "Work Sans", sans-serif;
+  --font-label: "Work Sans", sans-serif;
+}
 
 .material-symbols-outlined {
   font-variation-settings:
@@ -12,7 +36,6 @@
   padding-left: 1.5rem;
 }
 .glass-nav {
-  /* eslint-disable-next-line css/use-baseline */
   backdrop-filter: blur(12px);
   background: rgba(22, 19, 12, 0.85);
 }
