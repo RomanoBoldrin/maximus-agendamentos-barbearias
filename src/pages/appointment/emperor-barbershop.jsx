@@ -1,5 +1,6 @@
-// src/pages/emperor-barbershop.jsx
+// src/pages/appointment/emperor-barbershop.jsx
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
 function TopNavbar() {
@@ -152,12 +153,14 @@ function BarberCard({ barber, selected, onSelect }) {
             : "grayscale group-hover:grayscale-0 group-hover:scale-105"
         }`}
       >
-        {" "}
-        <img
-          className="w-full h-full object-cover"
+        <Image
+          className="object-cover"
           src={barber.image}
           alt={barber.alt}
+          fill
+          sizes="(max-width: 768px) 100vw, 50vw"
         />
+
         <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent opacity-60" />
       </div>
 
@@ -283,7 +286,6 @@ function getCalendarCells(currentMonthDate) {
   const firstDayOfMonth = new Date(year, month, 1);
   const lastDayOfMonth = new Date(year, month + 1, 0);
 
-  // Convert JS Sunday=0 into Monday=0
   const firstWeekday = (firstDayOfMonth.getDay() + 6) % 7;
 
   const cells = [];
@@ -479,7 +481,7 @@ export default function EmperorBarbershopPage() {
         id: "julian",
         name: "Julian",
         role: "Barbeiro Master",
-        image: "../julian_barber.jpg",
+        image: "/julian_barber.jpg",
         alt: "Retrato de um barbeiro profissional em ambiente de barbearia.",
         workStart: "09:00 AM",
         workEnd: "06:00 PM",
@@ -490,7 +492,7 @@ export default function EmperorBarbershopPage() {
         id: "elias",
         name: "Elias",
         role: "Especialista em Grooming",
-        image: "../elias_barber.jpg",
+        image: "/elias_barber.jpg",
         alt: "Barbeiro trabalhando com precisão na barba de um cliente.",
         workStart: "10:00 AM",
         workEnd: "07:00 PM",
@@ -506,7 +508,6 @@ export default function EmperorBarbershopPage() {
     return t;
   }, []);
 
-  // Simulated existing appointments (pretend from DB)
   const simulatedAppointments = useMemo(() => {
     const base = new Date();
     base.setHours(0, 0, 0, 0);
@@ -676,9 +677,7 @@ export default function EmperorBarbershopPage() {
 
       <main className="max-w-7xl mx-auto px-8 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-          {/* Left Column */}
           <div className="lg:col-span-8 space-y-24">
-            {/* Step 1 */}
             <section>
               <StepTitle>Passo 1: Escolha seu Serviço</StepTitle>
 
@@ -701,12 +700,10 @@ export default function EmperorBarbershopPage() {
               </div>
             </section>
 
-            {/* Step 2 */}
             <section>
               <StepTitle>Passo 2: Selecione seu Barbeiro</StepTitle>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-10 max-w-5xl">
-                {" "}
                 {barbers.map((barber) => (
                   <BarberCard
                     key={barber.id}
@@ -721,12 +718,10 @@ export default function EmperorBarbershopPage() {
               </div>
             </section>
 
-            {/* Step 3 */}
             <section>
               <StepTitle>Passo 3: Escolha Data e Horário</StepTitle>
 
               <div className="bg-surface-container-high p-8 grid grid-cols-1 md:grid-cols-2 gap-12">
-                {/* Calendar */}
                 <div>
                   <div className="flex justify-between items-center mb-8">
                     <h5 className="font-headline text-2xl italic">
@@ -783,7 +778,6 @@ export default function EmperorBarbershopPage() {
                   </div>
                 </div>
 
-                {/* Times */}
                 <div className="space-y-4">
                   <h5 className="font-headline text-2xl italic mb-6">
                     HORÁRIOS DISPONÍVEIS
@@ -821,10 +815,8 @@ export default function EmperorBarbershopPage() {
             </section>
           </div>
 
-          {/* Right Column */}
           <div className="lg:col-span-4">
             <div className="sticky top-32 space-y-8">
-              {/* Summary */}
               <section className="bg-surface-container-high p-10">
                 <div className="flex items-center gap-6 mb-12">
                   <div className="w-1 h-12 bg-primary" />
@@ -911,12 +903,13 @@ export default function EmperorBarbershopPage() {
                 </div>
               </section>
 
-              {/* Aesthetic Card */}
               <div className="relative bg-surface-container-high h-64 overflow-hidden group">
-                <img
-                  className="w-full h-full object-cover opacity-40 group-hover:scale-110 transition-transform duration-700"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBlJgE3Yrp1Cqx1VWOCuf3LbR1_p50k1vEOtuZEZHepZwOF41EYDyA6jr3dMwQzjFpS3DL6oaKltOvIMXju18DyjWoxS1h6crHDRLFr8zm0a54-JOyKSWJujLZumfYaz28luHuRqKCVrlG5t4DyVSNc8tCV_ueLP40G-B7lYz7M3wwaguUqF7rB5kbSk6xTbgtj2sqIlel-3xBzLQj1DzfUZr-xfg6TcAF4EuxGZ65Yz9aDayJCnsUb3fD4xfWybADB1D-JwLJzqw"
+                <Image
+                  className="object-cover opacity-40 group-hover:scale-110 transition-transform duration-700"
+                  src="/barbershop-interior.png"
                   alt="Interior moderno e luxuoso de uma barbearia."
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 33vw"
                 />
 
                 <div className="absolute inset-0 flex flex-col justify-center items-center p-8 text-center">
@@ -938,7 +931,6 @@ export default function EmperorBarbershopPage() {
 
       <Footer />
 
-      {/* eslint-disable-next-line react/no-unknown-property */}
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Image from "next/image";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
@@ -201,10 +202,12 @@ export default function DashboardEmployeesPage() {
 
         {/* Right Column: Image */}
         <div className="lg:col-span-7 relative min-h-[400px] lg:min-h-full">
-          <img
+          <Image
             alt="Interior clássico e sofisticado de uma barbearia vintage com cadeira de couro e iluminação quente."
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCB33Mqxaomzz0ROnbVjQMnVbmsUvIHPd72BJcumCW-GDxz3RlJ8QutEffrcRBWZRUJ-DzvZZC6iMF_Rc2xav9p9SuB_LIm6YviuEQCgty9K22iUSvhtooN8n2m10ZUBFSAWG4w6ueqAMaoYOHCA-uCEFxl7QRSZT_gjx03lOhWMFZ8HTEs9HVXuLKWd8AmgvWScVIQY77I-ZVQsvBKOpZF5RrRrKjH0SACYEbi_Tc-7bEAGGPkEYIbWhGV10CvuZm-qFGrKgiWMp8"
-            className="absolute inset-0 w-full h-full object-cover"
+            src="/cozy_leather_barber_chair.png"
+            fill
+            sizes="(max-width: 1024px) 100vw, 58vw"
+            className="object-cover"
           />
 
           <div className="absolute inset-0 bg-gradient-to-r from-surface-container-low via-transparent to-transparent lg:block hidden" />

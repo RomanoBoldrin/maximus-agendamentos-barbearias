@@ -14,11 +14,13 @@ function NavItem({ href, label, icon, active, collapsed }) {
     >
       <span className="text-lg shrink-0">{icon}</span>
 
-      {!collapsed && (
-        <span className="text-sm font-medium font-label uppercase tracking-wider whitespace-nowrap">
-          {label}
-        </span>
-      )}
+      <span
+        className={`text-sm font-medium font-label uppercase tracking-wider whitespace-nowrap transition-opacity duration-200 ${
+          collapsed ? "sr-only" : "inline"
+        }`}
+      >
+        {label}
+      </span>
     </Link>
   );
 }
@@ -32,19 +34,28 @@ export default function DashboardSidebar({ collapsed = false }) {
         collapsed ? "w-20" : "w-64"
       }`}
     >
-      <div className="px-6 py-8">
+      <div className="px-6 py-8 overflow-hidden">
         <div className="flex flex-col">
-          <Link href={"../../home"}>
-            <span className="text-2xl font-bold font-serif text-[#e9c349] uppercase leading-none">
-              {collapsed ? "M" : "Maximus"}
+          <Link href="/home" title="Maximus">
+            <span
+              className={`block text-2xl font-bold font-serif text-[#e9c349] uppercase leading-none whitespace-nowrap transition-all duration-300 ${
+                collapsed ? "max-w-[1ch] overflow-hidden" : "max-w-full"
+              }`}
+              aria-label="Maximus"
+            >
+              Maximus
             </span>
           </Link>
 
-          {!collapsed && (
-            <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-[#e9e1d6]/50 mt-1 font-label">
-              Modern Craftsman Admin
-            </span>
-          )}
+          <span
+            className={`text-[10px] uppercase tracking-[0.2em] font-medium text-[#e9e1d6]/50 mt-1 font-label whitespace-nowrap transition-all duration-300 ${
+              collapsed
+                ? "max-w-0 opacity-0 overflow-hidden"
+                : "max-w-full opacity-100"
+            }`}
+          >
+            Modern Craftsman Admin
+          </span>
         </div>
       </div>
 
@@ -121,11 +132,13 @@ export default function DashboardSidebar({ collapsed = false }) {
               </svg>
             </span>
 
-            {!collapsed && (
-              <span className="text-xs uppercase tracking-widest font-medium">
-                Configurações
-              </span>
-            )}
+            <span
+              className={`text-xs uppercase tracking-widest font-medium whitespace-nowrap ${
+                collapsed ? "sr-only" : "inline"
+              }`}
+            >
+              Configurações
+            </span>
           </Link>
 
           <button
@@ -144,11 +157,13 @@ export default function DashboardSidebar({ collapsed = false }) {
               </svg>
             </span>
 
-            {!collapsed && (
-              <span className="text-xs uppercase tracking-widest font-medium">
-                Sair
-              </span>
-            )}
+            <span
+              className={`text-xs uppercase tracking-widest font-medium whitespace-nowrap ${
+                collapsed ? "sr-only" : "inline"
+              }`}
+            >
+              Sair
+            </span>
           </button>
         </div>
       </div>

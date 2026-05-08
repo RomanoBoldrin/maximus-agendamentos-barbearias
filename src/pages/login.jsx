@@ -143,12 +143,12 @@ export default function LoginPage() {
            */}
             <p className="text-[10px] uppercase tracking-widest text-on-surface-variant/60">
               Novo por aqui?{" "}
-              <a
+              <Link
+                href={"/register"}
                 className="text-primary font-bold hover:opacity-80"
-                href="/register"
               >
                 Criar Conta
-              </a>
+              </Link>
             </p>
           </div>
         </div>

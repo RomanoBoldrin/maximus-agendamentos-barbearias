@@ -1,16 +1,18 @@
 import Link from "next/link";
 import MainLayout from "../components/layout/MainLayout";
 import InteractiveCalendar from "../components/ui/InteractiveCalendar";
+import Image from "next/image";
 
 export default function Home() {
   return (
     <>
       <section className="relative h-[614px] flex items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img
+          <Image
             className="w-full h-full object-cover opacity-30"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUsinAh31_tqvacNCJBW48RqNyWCnDp8b4QX6Lm-BT7fnICYj5hBcuPXawUHHS68gN8ML6XDWO5oUi9FPnEa9ikW5mPs9hZ5r-rFpFP5c6T2pxWGkqm0Jy2fbYpOoQen4kYqCdFAETFY_OUXUllwdEsLcwiSO0rtEY5rknn0uLGfFWo8t6fvZsZ6l40husdyeFRVczVbFA8Zc3FZ_p-3Y1B0N7X1gIeLe-NGXvKcy8z8jK8-JF9zMCWKhjbWtscNK7q-zuvB1-G1A"
+            src="/hero_section_barbershop.png"
             alt="Barbershop background"
+            fill
           />
           <div className="absolute inset-0 bg-gradient-to-b from-surface/20 via-surface/60 to-surface" />
         </div>
