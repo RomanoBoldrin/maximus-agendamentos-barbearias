@@ -13,6 +13,7 @@ export default function Home() {
             src="/hero_section_barbershop.png"
             alt="Barbershop background"
             fill
+            loading="eager"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-surface/20 via-surface/60 to-surface" />
         </div>
