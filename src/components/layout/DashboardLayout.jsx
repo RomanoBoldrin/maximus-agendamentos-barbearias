@@ -4,36 +4,24 @@ import DashboardSidebar from "@/components/ui/dashboard/DashboardSidebar";
 import DashboardTopbar from "@/components/ui/dashboard/DashboardTopbar";
 
 export default function DashboardLayout({ children }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    if (typeof window === "undefined") return false;
-
-    const saved = localStorage.getItem("maximus_sidebar_collapsed");
-    return saved === "true";
-  });
+  const [collapsed, setCollapsed] = useState(false);
 
   function toggleSidebar() {
-    setSidebarCollapsed((prev) => {
-      const newState = !prev;
-      localStorage.setItem("maximus_sidebar_collapsed", String(newState));
-      return newState;
-    });
+    setCollapsed((currentCollapsed) => !currentCollapsed);
   }
 
   return (
-    <div className="bg-background text-on-surface font-body selection:bg-primary/30 min-h-screen">
-      <DashboardSidebar collapsed={sidebarCollapsed} />
+    <div className="bg-background text-on-surface min-h-screen">
+      <DashboardSidebar collapsed={collapsed} />
 
-      <DashboardTopbar
-        collapsed={sidebarCollapsed}
-        onToggleSidebar={toggleSidebar}
-      />
+      <DashboardTopbar collapsed={collapsed} onToggleSidebar={toggleSidebar} />
 
       <main
         className={`pt-16 min-h-screen transition-all duration-300 ${
-          sidebarCollapsed ? "ml-20" : "ml-64"
+          collapsed ? "ml-20" : "ml-64"
         }`}
       >
-        <div className="p-8 lg:p-12">{children}</div>
+        {children}
       </main>
     </div>
   );

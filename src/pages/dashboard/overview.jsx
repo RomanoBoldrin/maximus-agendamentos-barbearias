@@ -1,3 +1,6 @@
+import Image from "next/image";
+import Link from "next/link";
+
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
 function StatCard({ label, value, subtitle, progressPercent, footer }) {
@@ -167,21 +170,30 @@ export default function DashboardOverviewPage() {
               </span>
 
               <div className="flex -space-x-2 ml-auto">
-                <img
-                  className="w-8 h-8 object-cover grayscale border border-surface-container-low"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIPa4TGSIhGG4YL4EAprDF625ApVZVJwu4WZW67jqHzb71x5AJCcGOVqAH9lG1UI832qfRdca_lYaE3DwFu2ziIMaorFOs1rNQiLz48xEWtS2jLi2qmyiEvz-yrirpywiPCb8JlKmsiuXHQReqBEGZXCdwdRQkBiSS9Rb3cQGOh3fa02AvkSbPNkiWFbOy-bGSXZcKjUqytRkK6gxUPjkNCEjsaPa-u1TFcfGW-nfy50C6vUJLXCazPa3--F26T6wLp5fyuiY-uP8"
-                  alt="Barbeiro 1"
+                <Image
+                  className="object-cover grayscale border border-surface-container-low"
+                  src="/crossed_arms_barber.png"
+                  alt="Barber with arms crossed"
+                  width={32}
+                  height={32}
                 />
-                <img
-                  className="w-8 h-8 object-cover grayscale border border-surface-container-low"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7m3TqNYzVEyqy27F0iFXW7J2SgiXXgE2a5Y5ghLY2tVkg5P-WNOyrMzjMlyEU0dcVzDXZovek1Y2YL3Ccw1u1CFE6FD-st42iFxSt9HM93qun4Lp33NUqjgsO7DfioFfQaeSXSEv1mLDbt3xp1KiMdk3JoZID4DcNPp6K0J3Zy6ADoB4Q5QyOuYKnLt0s7q3WKeuscaa86m_TrnmWht-g9CPUAmZFiAxjMLpI60iegX6PE7m2N7sONrxaijL__CIz2_uOfA3S7Fw"
-                  alt="Barbeiro 2"
+
+                <Image
+                  className="object-cover grayscale border border-surface-container-low"
+                  src="/old_barber.png"
+                  alt="Elderly barber"
+                  width={32}
+                  height={32}
                 />
-                <img
-                  className="w-8 h-8 object-cover grayscale border border-surface-container-low"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm6wVwsRclXcJOLxLNT4MCNDu9fdzCLRclCEM4m0X6gQwEHa60kOqSYNXBsM-E04-5uLH6_iFGOwtkj4Dxv86iHaAtVawJp4Pnf8pFj6cubPQyelWQl7d2xfYVSM9GTV-8Y8_5tmAlm0KU_WQNlJ1RiUeTFBl8y_mzohMbw1TxBoi3NrNQu5rSmhtUoJZ-gNYqZT7dNaslYs9wYpxMz-fBpku9cjiCetIc-X9JpViu4yqnkITlkVQP4PhIVAvPcsxuLGrIC51abW8"
+
+                <Image
+                  className="object-cover grayscale border border-surface-container-low"
+                  src="/barber_icon.png"
                   alt="Barbeiro 3"
+                  width={32}
+                  height={32}
                 />
+
                 <div className="w-8 h-8 bg-primary text-on-primary flex items-center justify-center text-[10px] font-bold font-label tracking-tighter">
                   +5
                 </div>
@@ -201,12 +213,12 @@ export default function DashboardOverviewPage() {
             </h3>
           </div>
 
-          <a
+          <Link
             href="/dashboard/appointments"
             className="text-xs font-label uppercase tracking-widest text-primary border-b border-primary/20 hover:border-primary pb-1 transition-all"
           >
             Ver Todos
-          </a>
+          </Link>
         </div>
 
         <div className="bg-surface-container-low shadow-[0_40px_100px_rgba(0,0,0,0.6)] overflow-hidden">
