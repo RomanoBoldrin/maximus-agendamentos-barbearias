@@ -36,6 +36,7 @@ if (!process.env.DATABASE_URL) {
 
 const globalForPrisma = globalThis;
 
+/** @type {import('@prisma/client').PrismaClient} */
 export const prisma =
   globalForPrisma.__prisma ||
   new PrismaClient({
