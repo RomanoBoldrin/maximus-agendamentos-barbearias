@@ -10,7 +10,7 @@ function getOrigin() {
   }
 
   // Fallback
-  return "http://localhost:3000";
+  return "https://maximus-agendamentos-barbearias.vercel.app";
 }
 
 const webserver = {
