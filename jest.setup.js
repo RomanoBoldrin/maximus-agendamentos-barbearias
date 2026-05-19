@@ -1,4 +1,4 @@
-require("dotenv").config({ path: ".env" });
+require("dotenv").config({ path: ".env.test" });
 const { prisma } = require("./src/infra/prisma");
 
 beforeAll(async () => {
