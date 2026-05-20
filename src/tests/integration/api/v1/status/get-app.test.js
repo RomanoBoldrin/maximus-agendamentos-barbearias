@@ -1,4 +1,4 @@
-import webserver from "@/infra/webserver.js";
+import webserver from "@/infra/webserver.mjs";
 
 describe("GET /api/v1/status", () => {
   describe("Anonymous user", () => {

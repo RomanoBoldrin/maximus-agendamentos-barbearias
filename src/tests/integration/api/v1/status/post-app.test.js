@@ -1,4 +1,4 @@
-import webserver from "@/infra/webserver.js";
+import webserver from "@/infra/webserver.mjs";
 import { MethodNotAllowedError } from "@/infra/errors";
 
 describe("POST /api/v1/status", () => {
