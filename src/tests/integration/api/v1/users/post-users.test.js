@@ -1,5 +1,6 @@
-import { prisma } from "@/infra/prisma.js";
+import { prisma as db} from "@/infra/prisma.js";
 import webserver from "@/infra/webserver.mjs";
+import password from "@/infra/password";
 
 describe("POST /api/v1/users", () => {
   describe("Anonymous user", () => {
@@ -36,7 +37,7 @@ describe("POST /api/v1/users", () => {
       expect(Date.parse(responseBody.createdAt)).not.toBeNaN();
       expect(Date.parse(responseBody.updatedAt)).not.toBeNaN();
 
-      const userInDatabase = await prisma.user.findUnique({
+      const userInDatabase = await db.user.findUnique({
         where: {
           email: "mail.test@test.com",
         },
@@ -52,6 +53,18 @@ describe("POST /api/v1/users", () => {
 
       expect(userInDatabase.passwordHash).not.toBe("LOCAL_PASSWORD");
       expect(userInDatabase.passwordHash).toEqual(expect.any(String));
+
+      const correctPasswordMatch = await password.compare(
+        "LOCAL_PASSWORD",
+        userInDatabase.passwordHash,
+      );
+      expect(correctPasswordMatch).toBe(true);
+
+      const incorrectPasswordMatch = await password.compare(
+        "WrongPassword",
+        userInDatabase.passwordHash,
+      );
+      expect(incorrectPasswordMatch).toBe(false);
     });
 
     test("With duplicated 'email'", async () => {
