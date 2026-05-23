@@ -2,6 +2,9 @@ name: Automated Tests
 
 on: pull_request
 
+permissions:
+  contents: read
+
 jobs:
   jest:
     name: Jest ubuntu
@@ -24,6 +27,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+      BCRYPT_ROUNDS: 1
 
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +39,9 @@ jobs:
       - run: npm ci
 
       - run: npx prisma generate
-      - run: npx prisma migrate reset --force
+
+      - name: Reset test database
+        run: npx prisma migrate reset --force
 
       - run: npm run build
 
@@ -46,4 +52,4 @@ jobs:
         run: npx wait-on http://localhost:3000
 
       - name: Run tests
-        run: npm run test
+        run: npm run test:ci

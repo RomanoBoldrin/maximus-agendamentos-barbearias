@@ -2,3 +2,5 @@
 .next
 node_modules
 /src/generated
+package.json
+package-lock.json

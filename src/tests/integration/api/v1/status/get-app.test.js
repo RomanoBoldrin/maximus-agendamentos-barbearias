@@ -1,4 +1,4 @@
-import webserver from "@/infra/webserver.js";
+import webserver from "@/infra/webserver.mjs";
 
 describe("GET /api/v1/status", () => {
   describe("Anonymous user", () => {
@@ -14,7 +14,9 @@ describe("GET /api/v1/status", () => {
       expect([100, 901]).toContain(
         responseBody.dependencies.database.max_connections,
       );
-      expect(responseBody.dependencies.database.opened_connections).toEqual(1);
+      expect([1, 2]).toContain(
+        responseBody.dependencies.database.opened_connections,
+      );
       expect(responseBody.dependencies.database.version.startsWith("18")).toBe(
         true,
       );

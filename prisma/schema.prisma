@@ -70,9 +70,11 @@ model Service {
 }
 
 model User {
-  userId         String      @id @default(uuid()) @map("user_id") @db.Uuid
-  username       String      @unique @db.VarChar(50)
-  passwordHash   String      @map("password_hash") @db.VarChar(255)
+  userId   String @id @default(uuid()) @map("user_id") @db.Uuid
+  username String @unique @db.VarChar(50)
+
+  email          String      @unique @db.VarChar(254) // Why 254 characters? => https://stackoverflow.com/a/1199238/32365519
+  passwordHash   String      @map("password_hash") @db.VarChar(60) // Why 60 characters? => https://www.npmjs.com/package/bcrypt#hash-info
   accessLevel    AccessLevel @default(barber) @map("access_level")
   linkedBarberId String?     @unique @map("linked_barber_id") @db.Uuid
   isActive       Boolean     @default(true) @map("is_active")

@@ -1,4 +1,9 @@
-import { InternalServerError, MethodNotAllowedError } from "./errors.js";
+import {
+  InternalServerError,
+  MethodNotAllowedError,
+  ValidationError,
+  NotFoundError,
+} from "./errors.js";
 
 const controller = {
   errorHandlers: {
@@ -15,6 +20,10 @@ function onNoMatchHandler(request, response) {
 }
 
 function onErrorHandler(error, request, response) {
+  if (error instanceof ValidationError || error instanceof NotFoundError) {
+    return response.status(error.statusCode).json(error);
+  }
+
   const publicErrorObject = new InternalServerError({
     cause: error,
   });
