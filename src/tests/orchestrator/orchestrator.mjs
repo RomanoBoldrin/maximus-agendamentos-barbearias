@@ -1,8 +1,11 @@
 import { execFileSync } from "node:child_process";
 
 import retry from "async-retry";
+import { faker } from "@faker-js/faker";
 
 import webserver from "../../infra/webserver.mjs";
+import { prisma as db } from "../../infra/prisma.js";
+import password from "../../infra/password.js";
 
 // const emailHttpUrl = `http://${process.env.EMAIL_HTTP_HOST}:${process.env.EMAIL_HTTP_PORT}`;
 
@@ -15,6 +18,7 @@ async function waitForAllServices() {
     const messageReady = "Services ready!";
 
     const startedAt = Date.now();
+
     function showElapsedTime() {
       return `${((Date.now() - startedAt) / 1000).toFixed(2)}s`;
     }
@@ -24,6 +28,7 @@ async function waitForAllServices() {
       const spinner = ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"];
       const index =
         Math.floor(Date.now() / intervalToUpdateMs) % spinner.length;
+
       return `${showElapsedTime()} ${spinner[index]}`;
     }
 
@@ -34,29 +39,17 @@ async function waitForAllServices() {
 
     async function fetchStatusPage() {
       process.stdout.write(`\r🟡 ${messageWaiting} ${showSpinner()}`);
+
       const response = await fetch(`${webserver.origin}/api/v1/status`);
+
       if (response.status !== 200) {
         throw new Error("Web server is not ready yet.");
       }
+
       process.stdout.write(`\r⚫ ${messageWaiting} - ${showElapsedTime()}`);
       process.stdout.write(`\n🟢 ${messageReady}\n`);
     }
   }
-
-  // async function waitForEmailServer() {
-  //   return retry(fetchEmailPage, {
-  //     retries: 100,
-  //     maxTimeout: 1000,
-  //   });
-
-  //   async function fetchEmailPage() {
-  //     const response = await fetch(emailHttpUrl);
-
-  //     if (response.status !== 200) {
-  //       throw new Error("Email server is not ready yet.");
-  //     }
-  //   }
-  // }
 }
 
 /**
@@ -75,12 +68,6 @@ async function clearDatabase() {
     stdio: "inherit",
     env: {
       ...process.env,
-
-      /**
-       * Prisma may block destructive commands when they are triggered by
-       * AI-assisted workflows. This variable documents explicit consent for
-       * this destructive test-only reset.
-       */
       PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION:
         "I understand this command resets the test database and destroys all test data.",
     },
@@ -114,9 +101,32 @@ function assertSafeEnvironment() {
   }
 }
 
+async function createUser(userObject = {}) {
+  const username =
+    userObject.username || faker.internet.username().replace(/[_.-]/g, "");
+
+  const email = (userObject.email || faker.internet.email()).toLowerCase();
+
+  const passwordHash = await password.hash(
+    userObject.password || "supersecurepassword123",
+  );
+
+  return await db.user.create({
+    data: {
+      username,
+      email,
+      passwordHash,
+      accessLevel: userObject.accessLevel || "barber",
+      linkedBarberId: userObject.linkedBarberId || null,
+      isActive: userObject.isActive ?? true,
+    },
+  });
+}
+
 const orchestrator = {
   waitForAllServices,
   clearDatabase,
+  createUser,
 };
 
 export default orchestrator;
