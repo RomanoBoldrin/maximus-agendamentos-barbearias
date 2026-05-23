@@ -1,29 +1,26 @@
-import { randomBytes, scrypt } from "node:crypto";
-import { promisify } from "node:util";
-
 import { createRouter } from "next-connect";
 
 import controller from "@/infra/controller";
-import { prisma } from "@/infra/prisma.js";
 import { ValidationError } from "@/infra/errors";
+import password from "@/infra/password";
+import { prisma } from "@/infra/prisma.js";
 
 const router = createRouter();
-const scryptAsync = promisify(scrypt);
 
 router.post(postHandler);
 
 export default router.handler(controller.errorHandlers);
 
 async function postHandler(request, response) {
-  const { username, email, password, accessLevel } = request.body;
+  const { username, email, password: rawPassword, accessLevel } = request.body;
 
-  if (!username || !email || !password || !accessLevel) {
+  if (!username || !email || !rawPassword || !accessLevel) {
     const publicErrorObject = new ValidationError();
 
     return response.status(publicErrorObject.statusCode).json({
       name: "ValidationError",
       message: "Missing required fields.",
-      action: "Send username, email and password.",
+      action: "Send username, email, password and accessLevel.",
       status_code: 400,
     });
   }
@@ -35,12 +32,14 @@ async function postHandler(request, response) {
     const publicErrorObject = new ValidationError();
 
     return response.status(publicErrorObject.statusCode).json({
+      name: "ValidationError",
       message: "Invalid access level.",
+      action: "Use a valid access level: admin or barber.",
       status_code: 400,
     });
   }
 
-  const passwordHash = await hashPassword(password);
+  const passwordHash = await password.hash(rawPassword);
 
   try {
     const createdUser = await prisma.user.create({
@@ -86,11 +85,4 @@ async function postHandler(request, response) {
 
     throw error;
   }
-}
-
-async function hashPassword(password) {
-  const salt = randomBytes(16).toString("hex");
-  const derivedKey = await scryptAsync(password, salt, 64);
-
-  return `${salt}:${derivedKey.toString("hex")}`;
 }
