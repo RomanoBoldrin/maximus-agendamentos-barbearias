@@ -1,4 +1,4 @@
-import { prisma as db} from "@/infra/prisma.js";
+import { prisma as db } from "@/infra/prisma.js";
 import webserver from "@/infra/webserver.mjs";
 import password from "@/infra/password";
 
