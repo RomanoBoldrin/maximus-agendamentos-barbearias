@@ -1,8 +1,9 @@
-import password from "@/infra/password";
+import password from "@/infra/password.js";
 import webserver from "@/infra/webserver.mjs";
 import { prisma as db } from "@/infra/prisma.js";
+import orchestrator from "@/tests/orchestrator/orchestrator.mjs";
 
-describe("GET /api/v1/users/[username]", () => {
+describe("PATCH /api/v1/users/[username]", () => {
   describe("Anonymous user", () => {
     test("With nonexistent `username`", async () => {
       const response = await fetch(
@@ -25,43 +26,27 @@ describe("GET /api/v1/users/[username]", () => {
     });
 
     test("With duplicated 'username'", async () => {
-      const user1response = await fetch(`${webserver.origin}/api/v1/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: "user1",
-          email: "user1@test.com",
-          password: "LOCAL_PASSWORD",
-          accessLevel: "barber",
-        }),
+      const createdUser1 = await orchestrator.createUser({
+        username: "user1",
       });
-      expect(user1response.status).toBe(201);
 
-      const user2response = await fetch(`${webserver.origin}/api/v1/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: "user2",
-          email: "user2@test.com",
-          password: "LOCAL_PASSWORD",
-          accessLevel: "barber",
-        }),
+      const createdUser2 = await orchestrator.createUser({
+        username: "user2",
       });
-      expect(user2response.status).toBe(201);
 
-      const response = await fetch(`${webserver.origin}/api/v1/users/user2`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${webserver.origin}/api/v1/users/${createdUser2.username}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: createdUser1.username,
+          }),
         },
-        body: JSON.stringify({
-          username: "user1",
-        }),
-      });
+      );
+
       expect(response.status).toBe(400);
 
       const responseBody = await response.json();
@@ -75,43 +60,27 @@ describe("GET /api/v1/users/[username]", () => {
     });
 
     test("With duplicated 'email'", async () => {
-      const email1response = await fetch(`${webserver.origin}/api/v1/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: "email1",
-          email: "email1@test.com",
-          password: "LOCAL_PASSWORD",
-          accessLevel: "barber",
-        }),
+      const createdUser1 = await orchestrator.createUser({
+        email: "email1@test.com",
       });
-      expect(email1response.status).toBe(201);
 
-      const email2response = await fetch(`${webserver.origin}/api/v1/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: "email2",
-          email: "email2@test.com",
-          password: "LOCAL_PASSWORD",
-          accessLevel: "barber",
-        }),
+      const createdUser2 = await orchestrator.createUser({
+        email: "email2@test.com",
       });
-      expect(email2response.status).toBe(201);
 
-      const response = await fetch(`${webserver.origin}/api/v1/users/email2`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${webserver.origin}/api/v1/users/${createdUser2.username}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: createdUser1.email,
+          }),
         },
-        body: JSON.stringify({
-          email: "email1@test.com",
-        }),
-      });
+      );
+
       expect(response.status).toBe(400);
 
       const responseBody = await response.json();
@@ -125,22 +94,15 @@ describe("GET /api/v1/users/[username]", () => {
     });
 
     test("With unique 'username'", async () => {
-      const user1response = await fetch(`${webserver.origin}/api/v1/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: "uniqueUser1",
-          email: "uniqueUser1@test.com",
-          password: "LOCAL_PASSWORD",
-          accessLevel: "barber",
-        }),
+      const createdUser = await orchestrator.createUser({
+        username: "uniqueUser1",
+        email: "uniqueUser1@test.com",
+        password: "LOCAL_PASSWORD",
+        accessLevel: "barber",
       });
-      expect(user1response.status).toBe(201);
 
       const response = await fetch(
-        `${webserver.origin}/api/v1/users/uniqueUser1`,
+        `${webserver.origin}/api/v1/users/${createdUser.username}`,
         {
           method: "PATCH",
           headers: {
@@ -151,18 +113,19 @@ describe("GET /api/v1/users/[username]", () => {
           }),
         },
       );
+
       expect(response.status).toBe(200);
 
       const responseBody = await response.json();
 
       expect(responseBody).toEqual({
-        userId: responseBody.userId,
+        userId: createdUser.userId,
         username: "uniqueUser2",
         email: "uniqueuser1@test.com",
         accessLevel: "barber",
         linkedBarberId: null,
         isActive: true,
-        createdAt: responseBody.createdAt,
+        createdAt: createdUser.createdAt.toISOString(),
         updatedAt: responseBody.updatedAt,
       });
 
@@ -173,22 +136,15 @@ describe("GET /api/v1/users/[username]", () => {
     });
 
     test("With unique 'email'", async () => {
-      const user1response = await fetch(`${webserver.origin}/api/v1/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: "uniqueEmail1",
-          email: "uniqueemail1@test.com",
-          password: "LOCAL_PASSWORD",
-          accessLevel: "barber",
-        }),
+      const createdUser = await orchestrator.createUser({
+        username: "uniqueEmail1",
+        email: "uniqueemail1@test.com",
+        password: "LOCAL_PASSWORD",
+        accessLevel: "barber",
       });
-      expect(user1response.status).toBe(201);
 
       const response = await fetch(
-        `${webserver.origin}/api/v1/users/uniqueEmail1`,
+        `${webserver.origin}/api/v1/users/${createdUser.username}`,
         {
           method: "PATCH",
           headers: {
@@ -199,18 +155,19 @@ describe("GET /api/v1/users/[username]", () => {
           }),
         },
       );
+
       expect(response.status).toBe(200);
 
       const responseBody = await response.json();
 
       expect(responseBody).toEqual({
-        userId: responseBody.userId,
+        userId: createdUser.userId,
         username: "uniqueEmail1",
         email: "uniqueemail2@test.com",
         accessLevel: "barber",
         linkedBarberId: null,
         isActive: true,
-        createdAt: responseBody.createdAt,
+        createdAt: createdUser.createdAt.toISOString(),
         updatedAt: responseBody.updatedAt,
       });
 
@@ -221,22 +178,15 @@ describe("GET /api/v1/users/[username]", () => {
     });
 
     test("With new 'password'", async () => {
-      const userResponse = await fetch(`${webserver.origin}/api/v1/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: "NewPassword1",
-          email: "newpassword1@test.com",
-          password: "NewPassword1",
-          accessLevel: "barber",
-        }),
+      const createdUser = await orchestrator.createUser({
+        username: "NewPassword1",
+        email: "newpassword1@test.com",
+        password: "NewPassword1",
+        accessLevel: "barber",
       });
-      expect(userResponse.status).toBe(201);
 
       const response = await fetch(
-        `${webserver.origin}/api/v1/users/NewPassword1`,
+        `${webserver.origin}/api/v1/users/${createdUser.username}`,
         {
           method: "PATCH",
           headers: {
@@ -247,18 +197,19 @@ describe("GET /api/v1/users/[username]", () => {
           }),
         },
       );
+
       expect(response.status).toBe(200);
 
       const responseBody = await response.json();
 
       expect(responseBody).toEqual({
-        userId: responseBody.userId,
+        userId: createdUser.userId,
         username: "NewPassword1",
         email: "newpassword1@test.com",
         accessLevel: "barber",
         linkedBarberId: null,
         isActive: true,
-        createdAt: responseBody.createdAt,
+        createdAt: createdUser.createdAt.toISOString(),
         updatedAt: responseBody.updatedAt,
       });
 

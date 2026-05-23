@@ -1,87 +1,60 @@
 import webserver from "@/infra/webserver.mjs";
+import orchestrator from "@/tests/orchestrator/orchestrator.mjs";
 
 describe("GET /api/v1/users/[username]", () => {
   describe("Anonymous user", () => {
     test("With exact case match", async () => {
-      const response1 = await fetch(`${webserver.origin}/api/v1/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: "SameCase",
-          email: "samecase@test.com",
-          password: "SehrSicheresPasswort",
-          accessLevel: "barber",
-        }),
-      });
-
-      expect(response1.status).toBe(201);
-
-      const response1Body = await response1.json();
-
-      const response2 = await fetch(
-        `${webserver.origin}/api/v1/users/SameCase`,
-      );
-
-      expect(response2.status).toBe(200);
-
-      const response2Body = await response2.json();
-
-      expect(response2Body).toEqual({
-        userId: response1Body.userId,
+      const createdUser = await orchestrator.createUser({
         username: "SameCase",
-        email: "samecase@test.com",
-        accessLevel: "barber",
-        linkedBarberId: null,
-        isActive: true,
-        createdAt: response1Body.createdAt,
-        updatedAt: response1Body.updatedAt,
       });
 
-      expect(Date.parse(response2Body.createdAt)).not.toBeNaN();
-      expect(Date.parse(response2Body.updatedAt)).not.toBeNaN();
+      const response = await fetch(`${webserver.origin}/api/v1/users/SameCase`);
+
+      expect(response.status).toBe(200);
+
+      const responseBody = await response.json();
+
+      expect(responseBody).toEqual({
+        userId: createdUser.userId,
+        username: "SameCase",
+        email: createdUser.email,
+        accessLevel: createdUser.accessLevel,
+        linkedBarberId: createdUser.linkedBarberId,
+        isActive: createdUser.isActive,
+        createdAt: createdUser.createdAt.toISOString(),
+        updatedAt: createdUser.updatedAt.toISOString(),
+      });
+
+      expect(Date.parse(responseBody.createdAt)).not.toBeNaN();
+      expect(Date.parse(responseBody.updatedAt)).not.toBeNaN();
     });
 
     test("With case mismatch", async () => {
-      const response1 = await fetch(`${webserver.origin}/api/v1/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: "DifferentCase",
-          email: "differentcase@test.com",
-          password: "SehrSicheresPasswort",
-          accessLevel: "barber",
-        }),
+      const createdUser = await orchestrator.createUser({
+        username: "DifferentCase",
       });
 
-      expect(response1.status).toBe(201);
-
-      const response1Body = await response1.json();
-
-      const response2 = await fetch(
+      const response = await fetch(
         `${webserver.origin}/api/v1/users/differentcase`,
       );
 
-      expect(response2.status).toBe(200);
+      expect(response.status).toBe(200);
 
-      const response2Body = await response2.json();
+      const responseBody = await response.json();
 
-      expect(response2Body).toEqual({
-        userId: response1Body.userId,
+      expect(responseBody).toEqual({
+        userId: createdUser.userId,
         username: "DifferentCase",
-        email: "differentcase@test.com",
-        accessLevel: "barber",
-        linkedBarberId: null,
-        isActive: true,
-        createdAt: response1Body.createdAt,
-        updatedAt: response1Body.updatedAt,
+        email: createdUser.email,
+        accessLevel: createdUser.accessLevel,
+        linkedBarberId: createdUser.linkedBarberId,
+        isActive: createdUser.isActive,
+        createdAt: createdUser.createdAt.toISOString(),
+        updatedAt: createdUser.updatedAt.toISOString(),
       });
 
-      expect(Date.parse(response2Body.createdAt)).not.toBeNaN();
-      expect(Date.parse(response2Body.updatedAt)).not.toBeNaN();
+      expect(Date.parse(responseBody.createdAt)).not.toBeNaN();
+      expect(Date.parse(responseBody.updatedAt)).not.toBeNaN();
     });
 
     test("With nonexistent username", async () => {

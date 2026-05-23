@@ -45,10 +45,6 @@ export const prisma =
         connectionString: process.env.DATABASE_URL,
       }),
     ),
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["query", "warn", "error"]
-        : ["error"],
   });
 
 if (process.env.NODE_ENV !== "production") {
