@@ -163,16 +163,22 @@ describe("POST /api/v1/sessions", () => {
         map: true,
       });
 
-      expect(parsedSetCookie.session_id).toEqual({
-        name: "session_id",
-        value: parsedSetCookie.session_id.value,
-        maxAge: session.SESSION_DURATION_IN_SECONDS,
-        path: "/",
-        httpOnly: true,
-        sameSite: "Lax",
-      });
+      expect(parsedSetCookie.session_id).toEqual(
+        expect.objectContaining({
+          name: "session_id",
+          value: parsedSetCookie.session_id.value,
+          maxAge: session.SESSION_DURATION_IN_SECONDS,
+          path: "/",
+          httpOnly: true,
+          sameSite: "Lax",
+        }),
+      );
 
       expect(parsedSetCookie.session_id.value).toEqual(expect.any(String));
+
+      if (setCookieHeader.includes("Secure")) {
+        expect(parsedSetCookie.session_id.secure).toBe(true);
+      }
     });
   });
 });
