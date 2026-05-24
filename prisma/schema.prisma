@@ -81,9 +81,27 @@ model User {
   createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  barber Barber? @relation(fields: [linkedBarberId], references: [barberId], onDelete: SetNull)
+  barber   Barber?   @relation(fields: [linkedBarberId], references: [barberId], onDelete: SetNull)
+  sessions Session[]
 
   @@map("users")
+}
+
+model Session {
+  sessionId String @id @default(uuid()) @map("session_id") @db.Uuid
+
+  tokenHash String @unique @map("token_hash") @db.VarChar(64)
+  userId    String @map("user_id") @db.Uuid
+
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId], name: "idxSessionsUser")
+  @@index([expiresAt], name: "idxSessionsExpiresAt")
+  @@map("sessions")
 }
 
 model Appointment {
