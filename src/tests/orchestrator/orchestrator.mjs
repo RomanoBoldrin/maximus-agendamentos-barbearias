@@ -1,11 +1,13 @@
 import { execFileSync } from "node:child_process";
 
+import * as cookie from "cookie";
 import retry from "async-retry";
 import { faker } from "@faker-js/faker";
 
 import webserver from "../../infra/webserver.mjs";
 import { prisma as db } from "../../infra/prisma.js";
 import password from "../../infra/password.js";
+import session from "../../infra/session.js";
 
 // const emailHttpUrl = `http://${process.env.EMAIL_HTTP_HOST}:${process.env.EMAIL_HTTP_PORT}`;
 
@@ -123,10 +125,28 @@ async function createUser(userObject = {}) {
   });
 }
 
+async function createSession(userId) {
+  const sessionObject = await session.create(userId);
+
+  const parsedCookie = cookie.parse(sessionObject.sessionCookie);
+
+  const rawSessionToken = parsedCookie.session_id || parsedCookie.session_token;
+
+  if (!rawSessionToken) {
+    throw new Error("Could not extract raw session token from session cookie.");
+  }
+
+  return {
+    ...sessionObject,
+    token: rawSessionToken,
+  };
+}
+
 const orchestrator = {
   waitForAllServices,
   clearDatabase,
   createUser,
+  createSession,
 };
 
 export default orchestrator;

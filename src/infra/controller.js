@@ -1,18 +1,12 @@
+import * as cookie from "cookie";
+
 import {
   InternalServerError,
   MethodNotAllowedError,
   ValidationError,
   NotFoundError,
+  UnauthorizedError,
 } from "./errors.js";
-
-const controller = {
-  errorHandlers: {
-    onNoMatch: onNoMatchHandler,
-    onError: onErrorHandler,
-  },
-};
-
-export default controller;
 
 function onNoMatchHandler(request, response) {
   const publicErrorObject = new MethodNotAllowedError();
@@ -24,6 +18,11 @@ function onErrorHandler(error, request, response) {
     return response.status(error.statusCode).json(error);
   }
 
+  if (error instanceof UnauthorizedError) {
+    clearSessionCookie(response);
+    return response.status(error.statusCode).json(error);
+  }
+
   const publicErrorObject = new InternalServerError({
     cause: error,
   });
@@ -32,3 +31,25 @@ function onErrorHandler(error, request, response) {
 
   response.status(500).json(publicErrorObject);
 }
+
+function clearSessionCookie(response) {
+  const setCookie = cookie.serialize("session_id", "invalid", {
+    path: "/",
+    maxAge: -1,
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+    sameSite: "lax",
+  });
+
+  response.setHeader("Set-Cookie", setCookie);
+}
+
+const controller = {
+  errorHandlers: {
+    onNoMatch: onNoMatchHandler,
+    onError: onErrorHandler,
+  },
+  clearSessionCookie,
+};
+
+export default controller;
