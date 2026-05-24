@@ -34,12 +34,14 @@
     "@tailwindcss/forms": "0.5.11",
     "@tailwindcss/postcss": "4.2.4",
     "bcryptjs": "3.0.3",
+    "cookie": "1.1.1",
     "dotenv": "17.4.2",
     "next": "16.2.4",
     "next-connect": "1.0.0",
     "pg": "8.20.0",
     "react": "19.2.5",
-    "react-dom": "19.2.5"
+    "react-dom": "19.2.5",
+    "uuid": "11.1.0"
   },
   "devDependencies": {
     "@commitlint/cli": "20.5.3",
@@ -68,6 +70,7 @@
     "postcss": "8.5.13",
     "prettier": "3.8.3",
     "prisma": "7.8.0",
+    "set-cookie-parser": "3.1.0",
     "tailwindcss": "4.2.4",
     "wait-on": "9.0.5"
   }
