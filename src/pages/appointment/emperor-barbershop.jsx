@@ -2,11 +2,12 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/router";
 
 function TopNavbar() {
   return (
     <header className="bg-[#2d2a22] flex justify-between items-center w-full px-8 py-6 max-w-full sticky top-0 z-50">
-      <Link href={"../home"}>
+      <Link href="/home">
         <div className="font-serif text-3xl font-bold tracking-tighter text-[#e9c349]">
           MAXIMUS
         </div>
@@ -21,6 +22,7 @@ function TopNavbar() {
             Home
           </Link>
         </div>
+
         <div className="hidden md:flex items-center gap-8">
           <Link
             className="text-[#e9c349] border-b-2 border-[#e9c349] pb-1 font-['Newsreader'] uppercase tracking-widest text-xs"
@@ -31,7 +33,7 @@ function TopNavbar() {
         </div>
       </nav>
 
-      <Link href={"summary"}>
+      <Link href="/appointment/summary">
         <button
           type="button"
           className="bg-primary text-on-primary font-bold px-8 py-3 active:opacity-70 active:scale-95 transition-all"
@@ -279,6 +281,14 @@ function formatSelectedDate(date) {
   return `${monthsShort[date.getMonth()]} ${date.getDate()},`;
 }
 
+function formatDateForQuery(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 function getCalendarCells(currentMonthDate) {
   const year = currentMonthDate.getFullYear();
   const month = currentMonthDate.getMonth();
@@ -431,6 +441,8 @@ function appointmentOverlapsSlot({
 }
 
 export default function EmperorBarbershopPage() {
+  const router = useRouter();
+
   const services = useMemo(() => {
     return [
       {
@@ -660,15 +672,18 @@ export default function EmperorBarbershopPage() {
       return;
     }
 
-    alert(
-      `Agendamento confirmado!\n\nServiço: ${selectedService.title}\nDuração: ${
-        selectedService.durationMinutes
-      } min\nBarbeiro: ${
-        selectedBarber.name
-      }\nData: ${selectedDate.toLocaleDateString(
-        "pt-BR",
-      )}\nHorário: ${selectedTime}\nTotal: $${total}.00`,
-    );
+    router.push({
+      pathname: "/appointment/summary",
+      query: {
+        service: selectedService.title,
+        barber: selectedBarber.name,
+        date: formatDateForQuery(selectedDate),
+        time: selectedTime,
+        duration: selectedService.durationMinutes,
+        price: selectedService.priceValue,
+        code: `MX-${Date.now().toString().slice(-6)}`,
+      },
+    });
   }
 
   return (
@@ -885,11 +900,10 @@ export default function EmperorBarbershopPage() {
                         ${total}.00
                       </span>
                     </div>
-
                     <button
                       type="button"
                       onClick={handleConfirm}
-                      className="w-full py-6 bg-gradient-to-r from-primary to-on-primary-container text-on-primary font-bold uppercase tracking-widest text-sm hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="w-full py-6 bg-primary text-on-primary font-bold uppercase tracking-widest text-sm shadow-[0_14px_30px_rgba(17,14,8,0.35)] hover:bg-[#f0ca55] hover:shadow-[4px_4px_0px_rgba(233,195,73,0.25)] active:translate-y-[1px] active:scale-[0.99] active:shadow-none transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:hover:shadow-none"
                       disabled={!selectedDate || !selectedTime}
                     >
                       Confirmar Agendamento
