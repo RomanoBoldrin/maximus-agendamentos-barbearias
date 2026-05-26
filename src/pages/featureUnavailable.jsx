@@ -29,7 +29,8 @@ export default function FeatureUnavailablePage() {
 
               <p className="text-on-surface-variant text-base md:text-lg leading-relaxed max-w-2xl mb-10">
                 Essa funcionalidade ainda não foi implementada nesta versão, mas
-                saiba que ela já está no mapa da Maximus para futuras implementações.
+                saiba que ela já está no mapa da Maximus para futuras
+                implementações.
               </p>
 
               <div className="bg-surface-container-lowest p-6 md:p-8 max-w-2xl mb-10">
