@@ -935,8 +935,9 @@ Protected endpoint to list appointments with role-based filtering.
 
 ```javascript
 async function getHandler(request, response) {
-  const { user } = await authentication.getAuthenticatedUserFromRequest(request);
-  
+  const { user } =
+    await authentication.getAuthenticatedUserFromRequest(request);
+
   // Barber must be linked to a profile
   if (!authorization.isAdmin(user) && !user.linkedBarberId) {
     throw new ForbiddenError({
@@ -944,18 +945,20 @@ async function getHandler(request, response) {
       action: "Contact an administrator.",
     });
   }
-  
+
   // Build filter based on role
   const whereClause = authorization.isAdmin(user)
     ? {} // Admin sees all
     : { barberId: user.linkedBarberId }; // Barber sees only own
-  
+
   const appointments = await db.appointment.findMany({
     where: whereClause,
-    select: { /* ... */ },
+    select: {
+      /* ... */
+    },
     orderBy: { appointmentDatetime: "asc" },
   });
-  
+
   return response.status(200).json(appointments.map(serialize));
 }
 ```
@@ -1214,7 +1217,7 @@ expect(barbers).toEqual(
       barber_name: "João Silva",
       is_active: true,
     }),
-  ])
+  ]),
 );
 ```
 
@@ -1235,6 +1238,7 @@ response.json({
 ```
 
 Apply this formatting in:
+
 - Services GET endpoint
 - Appointments POST/GET endpoints (in services arrays)
 
