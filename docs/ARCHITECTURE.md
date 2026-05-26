@@ -20,6 +20,9 @@ Contains versioned API route handlers. Each endpoint is a module that exports a 
 - `users/` — User CRUD operations, user profiles
 - `status/` — App health checks
 - `[username]/` — Dynamic routes for user lookups
+- `barbers/` — GET (public) list active barbers
+- `services/` — GET (public) list active services
+- `appointments/` — POST (public) create appointment, GET (protected) list appointments
 
 **Pattern**: Each handler is a separate async function with `(request, response)` signature. The router uses `controller.errorHandlers` for centralized error handling.
 
@@ -41,7 +44,8 @@ Shared utilities and helpers used by API routes. Each module has a single respon
 
 **Modules**:
 
-- `authentication.js` — User credential validation
+- `authentication.js` — User credential validation, protected request handling
+- `authorization.js` — Role-based and resource ownership checks (minimal RBAC)
 - `session.js` — Session lifecycle (creation, validation, renewal, expiration)
 - `password.js` — Password hashing and comparison
 - `errors.js` — Custom error classes (public API errors)
@@ -396,17 +400,58 @@ const user = await prisma.user.findUnique({
 
 ### authentication.js
 
-User credential validation during login.
+User credential validation during login and session-based protected request handling.
 
-**Function**: `getAuthenticatedUser({ email, password })`
+**Exports**:
 
-- Normalizes email to lowercase
-- Queries database for user by email
-- If not found, uses a fake password hash (prevents timing attacks)
-- Compares provided password against stored hash via bcryptjs
-- Throws `UnauthorizedError` if invalid
+- `getAuthenticatedUser({ email, password })` — Validate user credentials
+  - Normalizes email to lowercase
+  - Queries database for user by email
+  - If not found, uses a fake password hash (prevents timing attacks)
+  - Compares provided password against stored hash via bcryptjs
+  - Throws `UnauthorizedError` if invalid
+  - Returns user object with fields: userId, username, email, accessLevel, linkedBarberId, isActive, createdAt, updatedAt
+
+- `getAuthenticatedUserFromRequest(request)` — Extract and validate authenticated user from request
+  - Reads `request.cookies.session_id`
+  - Validates session via `session.findValidSessionbyToken()`
+  - Loads user and checks `isActive: true`
+  - Throws `UnauthorizedError` if session missing/invalid/expired
+  - Throws `NotFoundError` if user record not found
+  - Returns `{ user, session }` object (caller can access both for session renewal)
 
 **Design**: Always compare against a hash, even for non-existent users, to prevent timing-based email enumeration attacks.
+
+**Usage**: `getAuthenticatedUserFromRequest()` is the recommended helper for protected endpoints; it centralizes session validation and user lookup.
+
+### authorization.js
+
+Minimal role-based access control and resource ownership checks. Does NOT perform authentication; caller must authenticate first.
+
+**Exports**:
+
+- `isAdmin(user)` — Check if user has admin access (returns boolean)
+- `ensureAdmin(user)` — Throw `ForbiddenError` if user is not admin
+- `ensureOwnerOrAdmin(user, resourceOwnerBarberId)` — Throw `ForbiddenError` if user is not admin AND linkedBarberId doesn't match resourceOwnerBarberId
+
+**Design**:
+
+- Admin users bypass all resource restrictions (`isAdmin(user)` returns true)
+- Barber users have access only to resources where `linkedBarberId === resourceOwnerId`
+- Functions throw `ForbiddenError` on permission denial (authenticated but unpermitted)
+- No database queries; purely role/ownership checks against in-memory user object
+
+**Usage**:
+
+```javascript
+const { user } = await authentication.getAuthenticatedUserFromRequest(request);
+
+// For admin-only endpoints
+authorization.ensureAdmin(user); // Throws ForbiddenError if not admin
+
+// For resource owner checks
+authorization.ensureOwnerOrAdmin(user, appointment.barberId); // Only owner or admin can access
+```
 
 ### session.js
 
@@ -480,9 +525,13 @@ Central error handler for next-connect routers.
 
 **Error handling logic**:
 
-1. If error is a custom error class (from `errors.js`), return its `.toJSON()` response with appropriate status code
-2. If error is unexpected, return `InternalServerError` (status 500) without exposing details
-3. Never expose stack traces through public API responses
+1. `ValidationError` and `NotFoundError` — Return with appropriate 4xx status code
+2. `UnauthorizedError` — Return 401 AND clear session cookie (user is not authenticated)
+3. `ForbiddenError` — Return 403 WITHOUT clearing cookie (user is authenticated but lacks permission)
+4. Unexpected errors — Return `InternalServerError` (status 500) without exposing details
+5. Never expose stack traces through public API responses
+
+**Key distinction**: `UnauthorizedError` clears the session cookie (log user out), while `ForbiddenError` does not (keep user logged in but deny access).
 
 ### prisma.js
 
@@ -651,83 +700,264 @@ async function postHandler(request, response) {
 
 ## Protected Route Pattern (Template)
 
-Use this pattern for any endpoint requiring authentication:
+Use this pattern for any endpoint requiring authentication. The `getAuthenticatedUserFromRequest()` helper abstracts session validation and user loading:
 
 ```javascript
 import { createRouter } from "next-connect";
 import controller from "@/infra/controller";
-import { session } from "@/infra/session";
+import { getAuthenticatedUserFromRequest } from "@/infra/authentication";
 import { UnauthorizedError } from "@/infra/errors";
-import prisma from "@/infra/prisma";
 
 const router = createRouter();
 
 async function getHandler(request, response) {
-  // 1. Extract session token from cookie
-  const rawSessionToken = request.cookies.session_id;
-  if (!rawSessionToken) {
-    throw new UnauthorizedError({
-      message: "No session found.",
-      action: "Login to continue.",
+  // Extract and validate authenticated user (throws UnauthorizedError if invalid)
+  const { user, session } = await getAuthenticatedUserFromRequest(request);
+
+  // Optional: Check authorization roles
+  if (user.accessLevel !== "admin") {
+    throw new ForbiddenError({
+      message: "Admin access required.",
+      action: "Contact an administrator.",
     });
   }
 
-  // 2. Validate session exists and is not expired
-  const validSessionObject =
-    await session.findValidSessionbyToken(rawSessionToken);
-  if (!validSessionObject) {
-    throw new UnauthorizedError({
-      message: "Invalid or expired session.",
-      action: "Login to continue.",
-    });
-  }
+  // Proceed with business logic
+  // ... fetch data, process, return response
 
-  // 3. Fetch user data using sessionObject.userId
-  const userFound = await prisma.user.findUnique({
-    where: { userId: validSessionObject.userId },
-    select: {
-      userId: true,
-      username: true,
-      email: true,
-      accessLevel: true,
-      linkedBarberId: true,
-      isActive: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
-
-  if (!userFound || !userFound.isActive) {
-    throw new UnauthorizedError({
-      message: "User account is not active.",
-      action: "Contact support.",
-    });
-  }
-
-  // 4. Renew session (extend expiration)
-  const { sessionCookie } = await session.renew(
-    validSessionObject.sessionId,
-    rawSessionToken,
-  );
-  response.setHeader("Set-Cookie", sessionCookie);
   response.setHeader("Cache-Control", "no-store, no-cache, max-age=0");
-
-  // 5. Return data with snake_case keys
   return response.status(200).json({
-    user_id: userFound.userId,
-    username: userFound.username,
-    email: userFound.email,
-    access_level: userFound.accessLevel,
-    linked_barber_id: userFound.linkedBarberId,
-    is_active: userFound.isActive,
-    created_at: userFound.createdAt,
-    updated_at: userFound.updatedAt,
+    user_id: user.userId,
+    username: user.username,
+    email: user.email,
+    access_level: user.accessLevel,
+    linked_barber_id: user.linkedBarberId,
+    is_active: user.isActive,
   });
 }
 
 router.get(getHandler);
 
 export default router.handler(controller.errorHandlers);
+```
+
+**What `getAuthenticatedUserFromRequest()` does**:
+
+1. Reads session cookie from request
+2. Validates session via database lookup
+3. Loads user record and checks `isActive: true`
+4. Returns `{ user, session }` or throws `UnauthorizedError` with 401
+
+**Note**: For authorization checks (role/permission validation), use helpers from `authorization.js` after authentication succeeds.
+
+---
+
+## Public Endpoints (No Authentication Required)
+
+### GET /api/v1/barbers
+
+List all active barbers.
+
+**Behavior**:
+
+- No authentication required
+- Returns only barbers where `isActive: true`
+- Ordered by `createdAt` ascending
+- Response: JSON array of barber objects
+
+**Response fields** (snake_case):
+
+```json
+[
+  {
+    "barber_id": "uuid",
+    "barber_name": "string",
+    "phone_number": "string|null",
+    "work_start": "HH:MM",
+    "work_end": "HH:MM",
+    "lunch_start": "HH:MM|null",
+    "lunch_end": "HH:MM|null",
+    "is_active": true,
+    "created_at": "ISO8601",
+    "updated_at": "ISO8601"
+  }
+]
+```
+
+### GET /api/v1/services
+
+List all active services.
+
+**Behavior**:
+
+- No authentication required
+- Returns only services where `isActive: true`
+- Ordered by `createdAt` ascending
+- Prices serialized as strings with two decimal places
+
+**Response fields** (snake_case):
+
+```json
+[
+  {
+    "service_id": "uuid",
+    "service_name": "string",
+    "service_description": "string|null",
+    "duration": 30,
+    "price": "50.00",
+    "is_active": true,
+    "created_at": "ISO8601",
+    "updated_at": "ISO8601"
+  }
+]
+```
+
+---
+
+## Appointment Flow
+
+### POST /api/v1/appointments (Create Appointment)
+
+Public endpoint for clients to book appointments. Always creates a new Client record.
+
+**Request body**:
+
+```json
+{
+  "barber_id": "uuid (required)",
+  "appointment_datetime": "ISO8601 (required)",
+  "service_ids": ["uuid", "uuid"] (required, non-empty array),
+  "client_name": "string (required, non-empty)",
+  "client_phone": "string (optional)"
+}
+```
+
+**Validations**:
+
+1. All required fields present
+2. `appointment_datetime` is valid ISO8601 date
+3. `appointment_datetime` not in the past
+4. `service_ids` is non-empty array with no duplicates
+5. Barber exists and `isActive: true`
+6. All services exist and `isActive: true`
+7. No appointment already exists for barber at exact same `appointment_datetime` (unique constraint)
+
+**Business logic**:
+
+1. Create Client with provided `client_name` and `client_phone` (always new, no reuse)
+2. Calculate `totalDuration` as sum of all service durations
+3. Calculate `appointmentEndDatetime` as `appointment_datetime + totalDuration minutes`
+4. Use transaction (`db.$transaction()`) to ensure atomic creation:
+   - Create Appointment with status `AGENDADO`
+   - Create AppointmentService records with servicePrice and serviceDuration snapshots from Service
+5. Catch Prisma `P2002` unique constraint violation and return `ValidationError 400`
+
+**Response** (201 Created):
+
+```json
+{
+  "appointment_id": "uuid",
+  "appointment_datetime": "ISO8601",
+  "appointment_end_datetime": "ISO8601",
+  "total_duration": 60,
+  "status": "AGENDADO",
+  "client_id": "uuid",
+  "barber_id": "uuid",
+  "created_at": "ISO8601",
+  "updated_at": "ISO8601",
+  "services": [
+    {
+      "service_id": "uuid",
+      "service_name": "string",
+      "service_price": "50.00",
+      "service_duration": 30
+    }
+  ]
+}
+```
+
+**Errors**:
+
+- 400 ValidationError: missing/invalid fields, past datetime, duplicate appointment time, inactive barber/service
+- 404 NotFoundError: barber or service not found
+
+### GET /api/v1/appointments (List Appointments)
+
+Protected endpoint to list appointments with role-based filtering.
+
+**Authentication**: Required via `authentication.getAuthenticatedUserFromRequest(request)`
+
+**Authorization**:
+
+- Admin users: See all appointments
+- Barber users: See only appointments where `barberId === user.linkedBarberId`
+- Barber without `linkedBarberId`: Throw `ForbiddenError 403`
+
+**Response** (200 OK):
+
+```json
+[
+  {
+    "appointment_id": "uuid",
+    "appointment_datetime": "ISO8601",
+    "appointment_end_datetime": "ISO8601",
+    "total_duration": 60,
+    "status": "AGENDADO",
+    "created_at": "ISO8601",
+    "updated_at": "ISO8601",
+    "client": {
+      "client_id": "uuid",
+      "client_name": "string",
+      "client_phone": "string|null"
+    },
+    "barber": {
+      "barber_id": "uuid",
+      "barber_name": "string"
+    },
+    "services": [
+      {
+        "service_id": "uuid",
+        "service_name": "string",
+        "service_price": "50.00",
+        "service_duration": 30
+      }
+    ]
+  }
+]
+```
+
+**Errors**:
+
+- 401 UnauthorizedError: missing/invalid/expired session
+- 403 ForbiddenError: barber without linkedBarberId
+
+**Implementation example**:
+
+```javascript
+async function getHandler(request, response) {
+  const { user } = await authentication.getAuthenticatedUserFromRequest(request);
+  
+  // Barber must be linked to a profile
+  if (!authorization.isAdmin(user) && !user.linkedBarberId) {
+    throw new ForbiddenError({
+      message: "Barber profile not linked.",
+      action: "Contact an administrator.",
+    });
+  }
+  
+  // Build filter based on role
+  const whereClause = authorization.isAdmin(user)
+    ? {} // Admin sees all
+    : { barberId: user.linkedBarberId }; // Barber sees only own
+  
+  const appointments = await db.appointment.findMany({
+    where: whereClause,
+    select: { /* ... */ },
+    orderBy: { appointmentDatetime: "asc" },
+  });
+  
+  return response.status(200).json(appointments.map(serialize));
+}
 ```
 
 ---
@@ -780,11 +1010,52 @@ The orchestrator provides factory functions for test data:
 const user = await orchestrator.createUser({
   username: "custom_username",
   email: "custom@example.com",
+  accessLevel: "barber", // optional
+  linkedBarberId: null, // optional
+  isActive: true, // optional
 });
 
 // Create a session for a user
 const sessionObject = await orchestrator.createSession(user.userId);
 // Returns: { session, token, sessionCookie }
+
+// Create a barber with optional overrides
+const barber = await orchestrator.createBarber({
+  barberName: "João Silva",
+  phoneNumber: "123456789",
+  workStart: "08:00",
+  workEnd: "18:00",
+  isActive: true,
+});
+
+// Create a service with optional overrides
+const service = await orchestrator.createService({
+  serviceName: "Haircut",
+  serviceDescription: "Professional haircut",
+  duration: 30,
+  price: 50,
+  isActive: true,
+});
+
+// Create a client
+const client = await orchestrator.createClient({
+  clientName: "John Doe",
+  clientPhone: "987654321",
+  isActive: true,
+});
+
+// Create an appointment
+const appointment = await orchestrator.createAppointment({
+  barberId: barber.barberId,
+  clientId: client.clientId,
+  appointmentDatetime: new Date(),
+  appointmentEndDatetime: new Date(),
+  totalDuration: 30,
+  status: "AGENDADO",
+});
+
+// Link a user to a barber profile
+await orchestrator.linkUserToBarber(user.userId, barber.barberId);
 ```
 
 ### Integration Test Pattern
@@ -927,6 +1198,66 @@ throw new UnauthorizedError({
 ### 6. Don't Mix Pages Router and App Router
 
 This project uses Pages Router (`src/pages/`). Do not create App Router directories (`src/app/`).
+
+### 7. Don't Assume Tests Run Against Empty Database
+
+Tests may run in parallel and share database state. Use `expect.arrayContaining()` and `expect.objectContaining()` instead of exact equality checks:
+
+```javascript
+// BAD: Assumes empty database
+expect(barbers).toHaveLength(1);
+
+// GOOD: Tolerates pre-existing data
+expect(barbers).toEqual(
+  expect.arrayContaining([
+    expect.objectContaining({
+      barber_name: "João Silva",
+      is_active: true,
+    }),
+  ])
+);
+```
+
+### 8. Don't Return Decimal Prices Unformatted
+
+Prices stored as `Decimal` type must be formatted to two decimal places in API responses:
+
+```javascript
+// BAD: Unpredictable decimal places
+response.json({
+  price: service.price, // "50" or "50.00" unpredictably
+});
+
+// GOOD: Always two decimal places
+response.json({
+  price: Number(service.price).toFixed(2), // "50.00"
+});
+```
+
+Apply this formatting in:
+- Services GET endpoint
+- Appointments POST/GET endpoints (in services arrays)
+
+### 9. Don't Create New Client Records During Appointment Update
+
+Clients are always created fresh during appointment creation. Do not implement client reuse/lookup yet (reserved for Phase 5). Always create new Client on POST /appointments.
+
+### 10. Don't Access `linkedBarberId` for Non-Barber Users
+
+Barber users have `linkedBarberId` set; other access levels have `null`. Always check both:
+
+```javascript
+// BAD: Assumes all non-admin are barbers
+if (!authorization.isAdmin(user)) {
+  return user.linkedBarberId;
+}
+
+// GOOD: Check both conditions
+if (!authorization.isAdmin(user) && !user.linkedBarberId) {
+  throw new ForbiddenError({ message: "Barber profile not linked." });
+}
+return user.linkedBarberId;
+```
 
 ### 7. Don't Create Client-Side API Wrapper Middleware Yet
 
