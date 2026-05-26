@@ -162,11 +162,11 @@ export default function DashboardOverviewPage() {
 
         <StatCard
           label="Barbeiros Ativos"
-          value="08"
+          value="02"
           footer={
             <div className="flex items-center gap-2">
               <span className="text-on-surface-variant text-[10px] font-medium">
-                / 12 TOTAL
+                / 2 TOTAL
               </span>
 
               <div className="flex -space-x-2 ml-auto">
@@ -185,18 +185,6 @@ export default function DashboardOverviewPage() {
                   width={32}
                   height={32}
                 />
-
-                <Image
-                  className="object-cover grayscale border border-surface-container-low"
-                  src="/barber_icon.png"
-                  alt="Barbeiro 3"
-                  width={32}
-                  height={32}
-                />
-
-                <div className="w-8 h-8 bg-primary text-on-primary flex items-center justify-center text-[10px] font-bold font-label tracking-tighter">
-                  +5
-                </div>
               </div>
             </div>
           }
