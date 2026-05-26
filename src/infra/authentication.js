@@ -1,6 +1,7 @@
-import { UnauthorizedError } from "@/infra/errors";
+import { UnauthorizedError, NotFoundError } from "@/infra/errors";
 import password from "@/infra/password.js";
 import { prisma as db } from "@/infra/prisma.js";
+import session from "@/infra/session.js";
 
 // Used to reduce timing differences between:
 // - email not found
@@ -55,6 +56,62 @@ async function getAuthenticatedUser({
   return storedUser;
 }
 
+async function getAuthenticatedUserFromRequest(request) {
+  const rawSessionToken = request.cookies.session_id;
+
+  if (!rawSessionToken) {
+    throw new UnauthorizedError({
+      message: "User not authenticated.",
+      action: "Login to access this resource.",
+    });
+  }
+
+  const validSessionObject =
+    await session.findValidSessionbyToken(rawSessionToken);
+
+  if (!validSessionObject) {
+    throw new UnauthorizedError({
+      message: "Invalid or expired session.",
+      action: "Login to continue.",
+    });
+  }
+
+  const userFound = await db.user.findUnique({
+    where: {
+      userId: validSessionObject.userId,
+    },
+    select: {
+      userId: true,
+      username: true,
+      email: true,
+      accessLevel: true,
+      linkedBarberId: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  if (!userFound) {
+    throw new NotFoundError({
+      message: "User linked to this session was not found.",
+      action: "Login again or contact support.",
+    });
+  }
+
+  if (!userFound.isActive) {
+    throw new UnauthorizedError({
+      message: "User account is not active.",
+      action: "Contact support to reactivate this account.",
+    });
+  }
+
+  return {
+    user: userFound,
+    session: validSessionObject,
+  };
+}
+
 function getFakePasswordHash() {
   if (process.env.NODE_ENV === "production") {
     return FAKE_PASSWORD_HASH_PRODUCTION;
@@ -65,6 +122,7 @@ function getFakePasswordHash() {
 
 const authentication = {
   getAuthenticatedUser,
+  getAuthenticatedUserFromRequest,
 };
 
 export default authentication;

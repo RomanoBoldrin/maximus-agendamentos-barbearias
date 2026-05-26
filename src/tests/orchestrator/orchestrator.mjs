@@ -142,11 +142,73 @@ async function createSession(userId) {
   };
 }
 
+async function createBarber(barberObject = {}) {
+  return await db.barber.create({
+    data: {
+      barberName: barberObject.barberName || faker.person.fullName(),
+      phoneNumber: barberObject.phoneNumber || null,
+      workStart: barberObject.workStart || "08:00",
+      workEnd: barberObject.workEnd || "18:00",
+      lunchStart: barberObject.lunchStart || null,
+      lunchEnd: barberObject.lunchEnd || null,
+      isActive: barberObject.isActive ?? true,
+    },
+  });
+}
+
+async function createService(serviceObject = {}) {
+  return await db.service.create({
+    data: {
+      serviceName: serviceObject.serviceName || faker.commerce.productName(),
+      serviceDescription: serviceObject.serviceDescription || null,
+      duration: serviceObject.duration || 30,
+      price: serviceObject.price || 50,
+      isActive: serviceObject.isActive ?? true,
+    },
+  });
+}
+
+async function createClient(clientObject = {}) {
+  return await db.client.create({
+    data: {
+      clientName: clientObject.clientName || faker.person.fullName(),
+      clientPhone: clientObject.clientPhone || null,
+      isActive: clientObject.isActive ?? true,
+    },
+  });
+}
+
+async function createAppointment(appointmentObject = {}) {
+  return await db.appointment.create({
+    data: {
+      appointmentDatetime: appointmentObject.appointmentDatetime || new Date(),
+      appointmentEndDatetime:
+        appointmentObject.appointmentEndDatetime || new Date(),
+      totalDuration: appointmentObject.totalDuration || 0,
+      status: appointmentObject.status || "AGENDADO",
+      clientId: appointmentObject.clientId,
+      barberId: appointmentObject.barberId,
+    },
+  });
+}
+
+async function linkUserToBarber(userId, barberId) {
+  return await db.user.update({
+    where: { userId },
+    data: { linkedBarberId: barberId },
+  });
+}
+
 const orchestrator = {
   waitForAllServices,
   clearDatabase,
   createUser,
   createSession,
+  createBarber,
+  createService,
+  createClient,
+  createAppointment,
+  linkUserToBarber,
 };
 
 export default orchestrator;
