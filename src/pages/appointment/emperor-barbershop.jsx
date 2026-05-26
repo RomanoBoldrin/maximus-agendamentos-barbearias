@@ -22,18 +22,17 @@ function TopNavbar() {
             Home
           </Link>
         </div>
-
         <div className="hidden md:flex items-center gap-8">
           <Link
             className="text-[#e9c349] border-b-2 border-[#e9c349] pb-1 font-['Newsreader'] uppercase tracking-widest text-xs"
-            href="/home"
+            href="/featureUnavailable"
           >
             Galeria
           </Link>
         </div>
       </nav>
 
-      <Link href="/appointment/summary">
+      <Link href="/appointment/emperor-barbershop">
         <button
           type="button"
           className="bg-primary text-on-primary font-bold px-8 py-3 active:opacity-70 active:scale-95 transition-all"
@@ -287,6 +286,20 @@ function formatDateForQuery(date) {
   const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+function formatPhone(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+
+  if (digits.length <= 2) return digits.length ? `(${digits}` : "";
+
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+function getPhoneDigits(value) {
+  return value.replace(/\D/g, "");
 }
 
 function getCalendarCells(currentMonthDate) {
@@ -571,6 +584,8 @@ export default function EmperorBarbershopPage() {
 
   const [selectedDate, setSelectedDate] = useState(today);
   const [selectedTime, setSelectedTime] = useState(null);
+  const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
 
   const calendarCells = useMemo(() => {
     return getCalendarCells(currentMonth);
@@ -624,6 +639,9 @@ export default function EmperorBarbershopPage() {
   }, [generatedSlots, bookedAppointmentsForDay, selectedService]);
 
   const total = selectedService?.priceValue ?? 0;
+  const clientPhoneDigits = getPhoneDigits(clientPhone);
+  const isClientNameValid = clientName.trim().length >= 3;
+  const isClientPhoneValid = clientPhoneDigits.length === 11;
 
   function goPrevMonth() {
     setCurrentMonth((prev) => {
@@ -663,6 +681,16 @@ export default function EmperorBarbershopPage() {
       return;
     }
 
+    if (!isClientNameValid) {
+      alert("Informe seu nome completo antes de confirmar.");
+      return;
+    }
+
+    if (!isClientPhoneValid) {
+      alert("Informe um telefone válido com DDD antes de confirmar.");
+      return;
+    }
+
     const blocked = availableSlotsWithBlockedInfo.find(
       (slot) => slot.time === selectedTime,
     )?.blocked;
@@ -672,16 +700,21 @@ export default function EmperorBarbershopPage() {
       return;
     }
 
+    const appointmentId = `MX-${Date.now().toString().slice(-6)}`;
+
     router.push({
-      pathname: "/appointment/summary",
+      pathname: "/appointment/summary/[appointment_id]",
       query: {
+        appointment_id: appointmentId,
         service: selectedService.title,
         barber: selectedBarber.name,
         date: formatDateForQuery(selectedDate),
         time: selectedTime,
         duration: selectedService.durationMinutes,
         price: selectedService.priceValue,
-        code: `MX-${Date.now().toString().slice(-6)}`,
+        clientName: clientName.trim(),
+        phone: clientPhone,
+        code: appointmentId,
       },
     });
   }
@@ -828,6 +861,73 @@ export default function EmperorBarbershopPage() {
                 </div>
               </div>
             </section>
+
+            <section>
+              <StepTitle>Passo 4: Informe seus Dados</StepTitle>
+
+              <div className="bg-surface-container-high p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <label
+                      className="block font-label text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-3"
+                      htmlFor="clientName"
+                    >
+                      Nome do Cliente
+                    </label>
+
+                    <input
+                      id="clientName"
+                      name="clientName"
+                      type="text"
+                      value={clientName}
+                      onChange={(event) => setClientName(event.target.value)}
+                      placeholder="Seu nome completo"
+                      autoComplete="name"
+                      className="w-full bg-surface-container-lowest border-none border-b-2 border-outline-variant/30 focus:border-primary focus:ring-0 text-on-surface placeholder:text-on-surface-variant/30 py-4 px-3 transition-colors duration-300 font-body outline-none"
+                    />
+
+                    {clientName.length > 0 && !isClientNameValid && (
+                      <p className="mt-3 text-[10px] uppercase tracking-widest text-[#ffb4ab]">
+                        Informe ao menos 3 caracteres.
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className="block font-label text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-3"
+                      htmlFor="clientPhone"
+                    >
+                      Telefone do Cliente
+                    </label>
+
+                    <input
+                      id="clientPhone"
+                      name="clientPhone"
+                      type="tel"
+                      value={clientPhone}
+                      onChange={(event) =>
+                        setClientPhone(formatPhone(event.target.value))
+                      }
+                      placeholder="(00) 00000-0000"
+                      autoComplete="tel"
+                      className="w-full bg-surface-container-lowest border-none border-b-2 border-outline-variant/30 focus:border-primary focus:ring-0 text-on-surface placeholder:text-on-surface-variant/30 py-4 px-3 transition-colors duration-300 font-body outline-none"
+                    />
+
+                    {clientPhone.length > 0 && !isClientPhoneValid && (
+                      <p className="mt-3 text-[10px] uppercase tracking-widest text-[#ffb4ab]">
+                        Informe um telefone brasileiro válido com DDD.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <p className="mt-6 text-[10px] uppercase tracking-widest text-on-surface-variant opacity-60">
+                  Usaremos estes dados para identificar e confirmar seu
+                  agendamento.
+                </p>
+              </div>
+            </section>
           </div>
 
           <div className="lg:col-span-4">
@@ -891,6 +991,30 @@ export default function EmperorBarbershopPage() {
                     </div>
                   </div>
 
+                  <div className="flex justify-between items-end border-b border-outline-variant pb-4">
+                    <div>
+                      <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
+                        CLIENTE
+                      </p>
+
+                      <p className="font-headline text-2xl">
+                        {clientName || "Informe seu nome"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-end border-b border-outline-variant pb-4">
+                    <div>
+                      <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
+                        TELEFONE
+                      </p>
+
+                      <p className="font-headline text-2xl">
+                        {clientPhone || "Informe seu telefone"}
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="pt-8">
                     <div className="flex justify-between items-center mb-8">
                       <span className="font-headline text-3xl italic">
@@ -900,11 +1024,17 @@ export default function EmperorBarbershopPage() {
                         ${total}.00
                       </span>
                     </div>
+
                     <button
                       type="button"
                       onClick={handleConfirm}
                       className="w-full py-6 bg-primary text-on-primary font-bold uppercase tracking-widest text-sm shadow-[0_14px_30px_rgba(17,14,8,0.35)] hover:bg-[#f0ca55] hover:shadow-[4px_4px_0px_rgba(233,195,73,0.25)] active:translate-y-[1px] active:scale-[0.99] active:shadow-none transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:hover:shadow-none"
-                      disabled={!selectedDate || !selectedTime}
+                      disabled={
+                        !selectedDate ||
+                        !selectedTime ||
+                        !isClientNameValid ||
+                        !isClientPhoneValid
+                      }
                     >
                       Confirmar Agendamento
                       <span className="text-xl">→</span>
