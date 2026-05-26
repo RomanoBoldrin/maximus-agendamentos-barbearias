@@ -396,7 +396,7 @@ export default function SummaryPage() {
       <ConfirmDialog
         isOpen={isCancelDialogOpen}
         title="Cancelar agendamento?"
-        description="Tem certeza que deseja cancelar? Esta ação será usada para encerrar o horário reservado."
+        description="Tem certeza que deseja cancelar?"
         confirmLabel="Sim"
         cancelLabel="Não, voltar"
         variant="danger"
