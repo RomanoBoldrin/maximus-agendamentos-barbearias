@@ -152,14 +152,11 @@ export default function SummaryPage() {
 
       await wait(1200);
 
-      // TODO: Define final success behavior later.
-      // Example:
-      // router.push("/home");
+      router.push("/appointment/emperor-barbershop");
     } catch (error) {
       console.error(error);
 
       // TODO: Add user-facing error dialog/toast later.
-    } finally {
       setLoadingMessage(null);
     }
   }
@@ -258,11 +255,7 @@ export default function SummaryPage() {
 
                   <DetailItem label="Serviço" value={appointment.service} />
 
-                  <DetailItem
-                    label="Barbeiro"
-                    value={appointment.barber}
-                    highlight
-                  />
+                  <DetailItem label="Barbeiro" value={appointment.barber} />
 
                   <DetailItem label="Data" value={formattedDate} />
 
@@ -279,7 +272,11 @@ export default function SummaryPage() {
 
                   <DetailItem label="Total" value={formattedPrice} highlight />
 
-                  <DetailItem label="Telefone" value={appointment.phone} />
+                  <DetailItem
+                    label="Telefone"
+                    value={appointment.phone}
+                    highlight
+                  />
                 </dl>
               </section>
 
@@ -328,16 +325,6 @@ export default function SummaryPage() {
 
                     <p className="text-sm text-on-surface-variant leading-relaxed">
                       Precisão, pontualidade e tradição em cada detalhe.
-                    </p>
-                  </div>
-
-                  <div className="bg-surface-container-lowest p-5 mb-6">
-                    <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-2">
-                      Cliente
-                    </p>
-
-                    <p className="font-headline text-2xl text-on-surface">
-                      {appointment.clientName}
                     </p>
                   </div>
 
