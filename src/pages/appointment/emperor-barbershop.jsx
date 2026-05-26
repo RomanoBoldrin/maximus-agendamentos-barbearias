@@ -25,7 +25,7 @@ function TopNavbar() {
         <div className="hidden md:flex items-center gap-8">
           <Link
             className="text-[#e9c349] border-b-2 border-[#e9c349] pb-1 font-['Newsreader'] uppercase tracking-widest text-xs"
-            href="/home"
+            href="/featureUnavailable"
           >
             Galeria
           </Link>
