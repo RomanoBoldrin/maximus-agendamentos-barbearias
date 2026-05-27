@@ -55,11 +55,9 @@ function formatBrazilianPhone(value) {
   if (!value) return "Não informado";
 
   const digits = String(value).replace(/\D/g, "").slice(0, 11);
-
   if (!digits) return "Não informado";
 
   if (digits.length <= 2) return digits.length ? `(${digits}` : "";
-
   if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
 
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
@@ -119,7 +117,6 @@ export default function SummaryPage({ appointment }) {
   const serviceNames = appointment.services
     .map((service) => service.service_name)
     .join(", ");
-
   const clientPhone = formatBrazilianPhone(appointment.client.client_phone);
   const appointmentCode = appointment.appointment_id;
 
@@ -154,9 +151,7 @@ export default function SummaryPage({ appointment }) {
 
       router.push({
         pathname: "/appointment/emperor-barbershop",
-        query: {
-          toast: "appointment-cancelled",
-        },
+        query: { toast: "appointment-cancelled" },
       });
     } catch (error) {
       console.error(error);
@@ -239,16 +234,22 @@ export default function SummaryPage({ appointment }) {
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8 mb-10">
                   <div>
                     <p className="font-label text-[10px] uppercase tracking-[0.25em] text-primary mb-3">
-                      Código do agendamento
+                      Resumo do agendamento
                     </p>
 
-                    <p className="font-headline text-4xl md:text-5xl font-bold text-on-surface">
-                      {appointmentCode}
-                    </p>
+                    <h2 className="font-headline text-4xl md:text-5xl font-bold italic text-on-surface">
+                      Atendimento confirmado
+                    </h2>
                   </div>
 
-                  <div className="bg-primary text-on-primary px-5 py-3 font-bold text-[10px] uppercase tracking-[0.2em] self-start">
-                    {appointment.status}
+                  <div className="bg-surface-container-lowest px-5 py-4 self-start">
+                    <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
+                      Status
+                    </p>
+
+                    <p className="font-bold text-[10px] uppercase tracking-[0.2em] text-on-surface">
+                      {appointment.status}
+                    </p>
                   </div>
                 </div>
 
@@ -279,6 +280,16 @@ export default function SummaryPage({ appointment }) {
 
                   <DetailItem label="Telefone" value={clientPhone} highlight />
                 </dl>
+
+                <div className="mt-8 bg-surface-container-lowest p-5">
+                  <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-2">
+                    Código do agendamento
+                  </p>
+
+                  <p className="font-body text-sm text-on-surface-variant break-all">
+                    {appointmentCode}
+                  </p>
+                </div>
               </section>
 
               <section className="bg-surface-container-low p-8 md:p-10">
@@ -294,7 +305,7 @@ export default function SummaryPage({ appointment }) {
                   {appointment.services.map((service) => (
                     <div
                       key={service.service_id}
-                      className="flex items-center justify-between gap-4 bg-surface-container-high p-4"
+                      className="flex items-center justify-between gap-4 rounded bg-surface-container-high p-4"
                     >
                       <div>
                         <p className="font-headline text-lg">
