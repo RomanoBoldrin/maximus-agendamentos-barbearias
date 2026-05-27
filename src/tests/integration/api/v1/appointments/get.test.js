@@ -293,4 +293,97 @@ describe("GET /api/v1/appointments", () => {
       expect(responseBody.status_code).toBe(403);
     });
   });
+
+  describe("GET /api/v1/appointments/:appointment_id", () => {
+    test("Returns existing appointment with correct shape", async () => {
+      const barber = await orchestrator.createBarber({ barberName: "John" });
+      const service = await orchestrator.createService({
+        serviceName: "Haircut",
+        duration: 30,
+        price: 50,
+      });
+
+      const appointmentDateTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const createResponse = await fetch(`${webserver.origin}/api/v1/appointments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          barber_id: barber.barberId,
+          appointment_datetime: appointmentDateTime.toISOString(),
+          service_ids: [service.serviceId],
+          client_name: "John Doe",
+          client_phone: "123456789",
+        }),
+      });
+
+      expect(createResponse.status).toBe(201);
+
+      const createdAppointment = await createResponse.json();
+      const appointmentId = createdAppointment.appointment_id;
+
+      const response = await fetch(
+        `${webserver.origin}/api/v1/appointments/${appointmentId}`,
+      );
+
+      expect(response.status).toBe(200);
+
+      const responseBody = await response.json();
+
+      expect(responseBody).toMatchObject({
+        appointment_id: appointmentId,
+        total_duration: 30,
+        status: "AGENDADO",
+        client: {
+          client_id: expect.any(String),
+          client_name: "John Doe",
+          client_phone: "123456789",
+        },
+        barber: {
+          barber_id: barber.barberId,
+          barber_name: "John",
+        },
+        services: [
+          {
+            service_id: service.serviceId,
+            service_name: "Haircut",
+            service_price: "50.00",
+            service_duration: 30,
+          },
+        ],
+      });
+      expect(new Date(responseBody.appointment_datetime).toISOString()).toBe(
+        appointmentDateTime.toISOString(),
+      );
+      expect(typeof responseBody.created_at).toBe("string");
+      expect(typeof responseBody.updated_at).toBe("string");
+    });
+
+    test("Nonexistent valid appointment_id returns 404", async () => {
+      const fakeUuid = "123e4567-e89b-12d3-a456-426614174000";
+
+      const response = await fetch(
+        `${webserver.origin}/api/v1/appointments/${fakeUuid}`,
+      );
+
+      expect(response.status).toBe(404);
+
+      const responseBody = await response.json();
+      expect(responseBody.name).toBe("NotFoundError");
+      expect(responseBody.message).toContain("Appointment not found");
+    });
+
+    test("Invalid appointment_id returns 400", async () => {
+      const response = await fetch(
+        `${webserver.origin}/api/v1/appointments/invalid-uuid`,
+      );
+
+      expect(response.status).toBe(400);
+
+      const responseBody = await response.json();
+      expect(responseBody.name).toBe("ValidationError");
+      expect(responseBody.message).toContain("appointment_id must be a valid UUID");
+    });
+  });
 });
