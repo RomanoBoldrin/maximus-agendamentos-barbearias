@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 
@@ -6,28 +6,10 @@ import MainLayout from "@/components/layout/MainLayout";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import LoadingDialog from "@/components/ui/LoadingDialog";
 
-const DEFAULT_APPOINTMENT = {
-  clientName: "Cliente",
-  service: "Barba",
-  barber: "Elias",
-  date: "2026-05-25",
-  time: "10:30 AM",
-  duration: "30",
-  price: "20",
-  phone: "(00) 00000-0000",
-  code: "MX-2026-0001",
-};
-
-function getQueryValue(value) {
-  if (Array.isArray(value)) return value[0];
-  return value;
-}
-
 function formatAppointmentDate(dateValue) {
   if (!dateValue) return "Data não informada";
 
-  const parsedDate = new Date(`${dateValue}T00:00:00`);
-
+  const parsedDate = new Date(dateValue);
   if (Number.isNaN(parsedDate.getTime())) {
     return dateValue;
   }
@@ -40,12 +22,47 @@ function formatAppointmentDate(dateValue) {
   }).format(parsedDate);
 }
 
+function formatAppointmentTime(dateValue) {
+  if (!dateValue) return "Horário não informado";
+
+  const parsedDate = new Date(dateValue);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return dateValue;
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(parsedDate);
+}
+
+function calculateTotalPrice(services) {
+  return services.reduce((total, service) => {
+    return total + Number(service.service_price || 0);
+  }, 0);
+}
+
 function formatPrice(priceValue) {
   const price = Number(priceValue);
 
   if (Number.isNaN(price)) return "$0.00";
 
   return `$${price.toFixed(2)}`;
+}
+
+function formatBrazilianPhone(value) {
+  if (!value) return "Não informado";
+
+  const digits = String(value).replace(/\D/g, "").slice(0, 11);
+
+  if (!digits) return "Não informado";
+
+  if (digits.length <= 2) return digits.length ? `(${digits}` : "";
+
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
 function wait(milliseconds) {
@@ -90,38 +107,21 @@ function StepItem({ number, title, description }) {
   );
 }
 
-export default function SummaryPage() {
+export default function SummaryPage({ appointment }) {
   const router = useRouter();
 
   const [dialogType, setDialogType] = useState(null);
   const [loadingMessage, setLoadingMessage] = useState(null);
 
-  const appointment = useMemo(() => {
-    const clientName = getQueryValue(router.query.clientName);
-    const service = getQueryValue(router.query.service);
-    const barber = getQueryValue(router.query.barber);
-    const date = getQueryValue(router.query.date);
-    const time = getQueryValue(router.query.time);
-    const duration = getQueryValue(router.query.duration);
-    const price = getQueryValue(router.query.price);
-    const phone = getQueryValue(router.query.phone);
-    const code = getQueryValue(router.query.code);
+  const formattedDate = formatAppointmentDate(appointment.appointment_datetime);
+  const formattedTime = formatAppointmentTime(appointment.appointment_datetime);
+  const totalPrice = formatPrice(calculateTotalPrice(appointment.services));
+  const serviceNames = appointment.services
+    .map((service) => service.service_name)
+    .join(", ");
 
-    return {
-      clientName: clientName || DEFAULT_APPOINTMENT.clientName,
-      service: service || DEFAULT_APPOINTMENT.service,
-      barber: barber || DEFAULT_APPOINTMENT.barber,
-      date: date || DEFAULT_APPOINTMENT.date,
-      time: time || DEFAULT_APPOINTMENT.time,
-      duration: duration || DEFAULT_APPOINTMENT.duration,
-      price: price || DEFAULT_APPOINTMENT.price,
-      phone: phone || DEFAULT_APPOINTMENT.phone,
-      code: code || DEFAULT_APPOINTMENT.code,
-    };
-  }, [router.query]);
-
-  const formattedDate = formatAppointmentDate(appointment.date);
-  const formattedPrice = formatPrice(appointment.price);
+  const clientPhone = formatBrazilianPhone(appointment.client.client_phone);
+  const appointmentCode = appointment.appointment_id;
 
   const isCancelDialogOpen = dialogType === "cancel";
   const isRescheduleDialogOpen = dialogType === "reschedule";
@@ -146,13 +146,18 @@ export default function SummaryPage() {
     try {
       // TODO: Replace this simulated delay with the real API call.
       // Example:
-      // await fetch(`/api/v1/appointments/${appointment.code}`, {
+      // await fetch(`/api/v1/appointments/${appointment.appointment_id}`, {
       //   method: "DELETE",
       // });
 
       await wait(1200);
 
-      router.push("/appointment/emperor-barbershop");
+      router.push({
+        pathname: "/appointment/emperor-barbershop",
+        query: {
+          toast: "appointment-cancelled",
+        },
+      });
     } catch (error) {
       console.error(error);
 
@@ -176,7 +181,7 @@ export default function SummaryPage() {
     try {
       // TODO: Replace this simulated delay with a real cancellation/update API call.
       // Example:
-      // await fetch(`/api/v1/appointments/${appointment.code}/reschedule`, {
+      // await fetch(`/api/v1/appointments/${appointment.appointment_id}/reschedule`, {
       //   method: "POST",
       // });
 
@@ -208,7 +213,8 @@ export default function SummaryPage() {
                   </p>
 
                   <h1 className="font-headline text-5xl md:text-7xl font-bold italic tracking-tight">
-                    {appointment.clientName}, seu horário está reservado.
+                    {appointment.client.client_name}, seu horário está
+                    reservado.
                   </h1>
                 </div>
               </div>
@@ -237,47 +243,74 @@ export default function SummaryPage() {
                     </p>
 
                     <p className="font-headline text-4xl md:text-5xl font-bold text-on-surface">
-                      {appointment.code}
+                      {appointmentCode}
                     </p>
                   </div>
 
                   <div className="bg-primary text-on-primary px-5 py-3 font-bold text-[10px] uppercase tracking-[0.2em] self-start">
-                    Confirmado
+                    {appointment.status}
                   </div>
                 </div>
 
                 <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <DetailItem
                     label="Cliente"
-                    value={appointment.clientName}
+                    value={appointment.client.client_name}
                     highlight
                   />
 
-                  <DetailItem label="Serviço" value={appointment.service} />
+                  <DetailItem label="Serviço" value={serviceNames} />
 
-                  <DetailItem label="Barbeiro" value={appointment.barber} />
+                  <DetailItem
+                    label="Barbeiro"
+                    value={appointment.barber.barber_name}
+                  />
 
                   <DetailItem label="Data" value={formattedDate} />
 
-                  <DetailItem
-                    label="Horário"
-                    value={appointment.time}
-                    highlight
-                  />
+                  <DetailItem label="Horário" value={formattedTime} highlight />
 
                   <DetailItem
                     label="Duração"
-                    value={`${appointment.duration} min`}
+                    value={`${appointment.total_duration} min`}
                   />
 
-                  <DetailItem label="Total" value={formattedPrice} highlight />
+                  <DetailItem label="Total" value={totalPrice} highlight />
 
-                  <DetailItem
-                    label="Telefone"
-                    value={appointment.phone}
-                    highlight
-                  />
+                  <DetailItem label="Telefone" value={clientPhone} highlight />
                 </dl>
+              </section>
+
+              <section className="bg-surface-container-low p-8 md:p-10">
+                <div className="flex items-center gap-5 mb-8">
+                  <div className="w-1 h-12 bg-primary" />
+
+                  <h2 className="font-headline text-4xl font-bold italic">
+                    Serviços contratados
+                  </h2>
+                </div>
+
+                <div className="space-y-4">
+                  {appointment.services.map((service) => (
+                    <div
+                      key={service.service_id}
+                      className="flex items-center justify-between gap-4 bg-surface-container-high p-4"
+                    >
+                      <div>
+                        <p className="font-headline text-lg">
+                          {service.service_name}
+                        </p>
+                        <p className="text-sm text-on-surface-variant">
+                          {service.service_duration} min
+                        </p>
+                      </div>
+
+                      <p className="font-bold">
+                        {formatPrice(service.service_price)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </section>
 
               <section className="bg-surface-container-low p-8 md:p-10">
@@ -334,7 +367,7 @@ export default function SummaryPage() {
                     </p>
 
                     <p className="font-headline text-2xl text-on-surface">
-                      {appointment.phone}
+                      {clientPhone}
                     </p>
                   </div>
 
@@ -421,6 +454,40 @@ export default function SummaryPage() {
       />
     </>
   );
+}
+
+export async function getServerSideProps(context) {
+  const rawAppointmentId = context.params?.appointment_id;
+  const appointmentId = Array.isArray(rawAppointmentId)
+    ? rawAppointmentId[0]
+    : rawAppointmentId;
+
+  if (!appointmentId || typeof appointmentId !== "string") {
+    return { notFound: true };
+  }
+
+  const protocol = context.req.headers["x-forwarded-proto"] || "http";
+  const host = context.req.headers.host;
+
+  const response = await fetch(
+    `${protocol}://${host}/api/v1/appointments/${appointmentId}`,
+  );
+
+  if (response.status === 404 || response.status === 400) {
+    return { notFound: true };
+  }
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch appointment details.");
+  }
+
+  const appointment = await response.json();
+
+  return {
+    props: {
+      appointment,
+    },
+  };
 }
 
 SummaryPage.getLayout = function getLayout(page) {
