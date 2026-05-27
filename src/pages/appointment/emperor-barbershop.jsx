@@ -35,7 +35,7 @@ src/
 
 */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import { showToast } from "nextjs-toast-notify";
@@ -69,6 +69,7 @@ import TimeSlotButton from "@/features/appointment/booking/components/TimeSlotBu
 
 export default function EmperorBarbershopPage() {
   const router = useRouter();
+  const toastShownRef = useRef(false);
 
   const today = useMemo(() => {
     const t = new Date();
@@ -97,8 +98,10 @@ export default function EmperorBarbershopPage() {
 
   useEffect(() => {
     if (!router.isReady) return;
-
+    if (toastShownRef.current) return;
     if (router.query.toast !== "appointment-cancelled") return;
+
+    toastShownRef.current = true;
 
     showToast.success("Agendamento cancelado com sucesso", {
       duration: 4000,

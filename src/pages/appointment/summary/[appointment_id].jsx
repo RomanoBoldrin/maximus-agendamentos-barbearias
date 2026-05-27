@@ -51,6 +51,18 @@ function formatPrice(priceValue) {
   return `$${price.toFixed(2)}`;
 }
 
+function formatBrazilianPhone(value) {
+  if (!value) return "Não informado";
+
+  const digits = String(value).replace(/\D/g, "").slice(0, 11);
+  if (!digits) return "Não informado";
+
+  if (digits.length <= 2) return digits.length ? `(${digits}` : "";
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 function wait(milliseconds) {
   return new Promise((resolve) => {
     setTimeout(resolve, milliseconds);
@@ -105,7 +117,7 @@ export default function SummaryPage({ appointment }) {
   const serviceNames = appointment.services
     .map((service) => service.service_name)
     .join(", ");
-  const clientPhone = appointment.client.client_phone || "Não informado";
+  const clientPhone = formatBrazilianPhone(appointment.client.client_phone);
   const appointmentCode = appointment.appointment_id;
 
   const isCancelDialogOpen = dialogType === "cancel";
@@ -137,7 +149,10 @@ export default function SummaryPage({ appointment }) {
 
       await wait(1200);
 
-      router.push("/appointment/emperor-barbershop");
+      router.push({
+        pathname: "/appointment/emperor-barbershop",
+        query: { toast: "appointment-cancelled" },
+      });
     } catch (error) {
       console.error(error);
 
