@@ -304,19 +304,22 @@ describe("GET /api/v1/appointments", () => {
       });
 
       const appointmentDateTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      const createResponse = await fetch(`${webserver.origin}/api/v1/appointments`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const createResponse = await fetch(
+        `${webserver.origin}/api/v1/appointments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            barber_id: barber.barberId,
+            appointment_datetime: appointmentDateTime.toISOString(),
+            service_ids: [service.serviceId],
+            client_name: "John Doe",
+            client_phone: "123456789",
+          }),
         },
-        body: JSON.stringify({
-          barber_id: barber.barberId,
-          appointment_datetime: appointmentDateTime.toISOString(),
-          service_ids: [service.serviceId],
-          client_name: "John Doe",
-          client_phone: "123456789",
-        }),
-      });
+      );
 
       expect(createResponse.status).toBe(201);
 
@@ -383,7 +386,9 @@ describe("GET /api/v1/appointments", () => {
 
       const responseBody = await response.json();
       expect(responseBody.name).toBe("ValidationError");
-      expect(responseBody.message).toContain("appointment_id must be a valid UUID");
+      expect(responseBody.message).toContain(
+        "appointment_id must be a valid UUID",
+      );
     });
   });
 });
