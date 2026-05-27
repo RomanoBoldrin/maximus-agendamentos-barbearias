@@ -181,7 +181,7 @@ async function postHandler(request, response) {
 
 Sessions are database records that track user login state:
 
-``` prisma
+```prisma
 Session {
   sessionId:     UUID (primary key)
   tokenHash:     STRING unique, NOT NULL (SHA256 hash of raw token)
@@ -326,7 +326,7 @@ The system distinguishes between authentication accounts and work profiles.
 
 The `User` model represents an account in the system:
 
-``` prisma
+```prisma
 User {
   userId:         UUID
   username:       STRING unique
@@ -348,7 +348,7 @@ User {
 
 The `Barber` model represents a work profile in the system:
 
-``` prisma
+```prisma
 Barber {
   barberId:    UUID
   name:        STRING
@@ -971,7 +971,7 @@ async function getHandler(request, response) {
 
 Tests are organized to mirror the API structure:
 
-``` txt
+```txt
 src/tests/
   integration/
     api/
