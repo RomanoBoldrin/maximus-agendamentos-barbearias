@@ -1,8 +1,49 @@
-// src/pages/appointment/emperor-barbershop.jsx
-import { useMemo, useState } from "react";
+/*
+========================================================
+| src/pages/appointment/emperor-barbershop.jsx          |
+| THIS PAGE NEEDS TO BE REFACTORED IN A FUTURE VERSION  |
+| It mixes way too much responsabilities                |
+======================================================== 
+
+An ideal future refactor would be:
+
+```
+src/
+  pages/
+    appointment/
+      emperor-barbershop.jsx
+
+  components/
+    appointment/
+      AppointmentServiceStep.jsx
+      AppointmentBarberStep.jsx
+      AppointmentDateTimeStep.jsx
+      AppointmentClientDataStep.jsx
+      AppointmentSummaryCard.jsx
+      ServiceCard.jsx
+      BarberCard.jsx
+      CalendarDayButton.jsx
+      TimeSlotButton.jsx
+
+  lib/
+    appointments/
+      calendar.js
+      time-slots.js
+      formatters.js
+      mock-data.js
+```
+
+As of may 27, 2026, this is not a priority.
+You, maintainer of the future (probably myself from the future),
+shall refactor this. Good luck....
+
+*/
+
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { showToast } from "nextjs-toast-notify";
 
 function TopNavbar() {
   return (
@@ -22,6 +63,7 @@ function TopNavbar() {
             Home
           </Link>
         </div>
+
         <div className="hidden md:flex items-center gap-8">
           <Link
             className="text-[#e9c349] border-b-2 border-[#e9c349] pb-1 font-['Newsreader'] uppercase tracking-widest text-xs"
@@ -82,6 +124,22 @@ function StepTitle({ children }) {
   );
 }
 
+function EmptyState({ title, description }) {
+  return (
+    <div className="bg-surface-container-high p-10 text-center border border-outline-variant/30">
+      <span className="text-primary text-5xl mb-6 block">✦</span>
+
+      <h3 className="font-headline text-4xl italic text-primary mb-4">
+        {title}
+      </h3>
+
+      <p className="font-label text-xs uppercase tracking-[0.2em] text-on-surface-variant opacity-70 leading-relaxed">
+        {description}
+      </p>
+    </div>
+  );
+}
+
 function ServiceCard({ service, selected, onSelect }) {
   return (
     <button
@@ -125,7 +183,7 @@ function ServiceCard({ service, selected, onSelect }) {
             selected ? "text-on-primary" : "text-on-surface-variant"
           }`}
         >
-          {service.description}
+          {service.description || "Serviço disponível para agendamento"}
         </p>
       </div>
 
@@ -280,14 +338,6 @@ function formatSelectedDate(date) {
   return `${monthsShort[date.getMonth()]} ${date.getDate()},`;
 }
 
-function formatDateForQuery(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
 function formatPhone(value) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
 
@@ -407,11 +457,14 @@ function generateTimeSlots({
   duration,
   interval,
 }) {
+  if (!workStart || !workEnd || !duration) return [];
+
   const startMinutes = parseTimeToMinutes(workStart);
   const endMinutes = parseTimeToMinutes(workEnd);
 
-  const lunchStartMin = parseTimeToMinutes(lunchStart);
-  const lunchEndMin = parseTimeToMinutes(lunchEnd);
+  const hasLunchBreak = Boolean(lunchStart && lunchEnd);
+  const lunchStartMin = hasLunchBreak ? parseTimeToMinutes(lunchStart) : null;
+  const lunchEndMin = hasLunchBreak ? parseTimeToMinutes(lunchEnd) : null;
 
   const slots = [];
 
@@ -421,7 +474,7 @@ function generateTimeSlots({
     const appointmentEnd = current + duration;
 
     const overlapsLunch =
-      current < lunchEndMin && appointmentEnd > lunchStartMin;
+      hasLunchBreak && current < lunchEndMin && appointmentEnd > lunchStartMin;
 
     if (!overlapsLunch) {
       slots.push(formatMinutesToTime(current));
@@ -433,99 +486,87 @@ function generateTimeSlots({
   return slots;
 }
 
-function areDatesSameDay(a, b) {
+function formatApiTimeToMeridian(time) {
+  if (!time) return null;
+
+  const [hourString, minuteString] = time.split(":");
+  let hour = Number(hourString);
+  const meridian = hour >= 12 ? "PM" : "AM";
+
+  if (hour === 0) hour = 12;
+  if (hour > 12) hour -= 12;
+
+  return `${String(hour).padStart(2, "0")}:${minuteString} ${meridian}`;
+}
+
+function buildAppointmentDateTime(selectedDate, selectedTime) {
+  const appointmentDate = new Date(selectedDate);
+  const minutes = parseTimeToMinutes(selectedTime);
+
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+
+  appointmentDate.setHours(hours, mins, 0, 0);
+
+  return appointmentDate.toISOString();
+}
+
+function getServiceIcon(serviceName = "") {
+  const normalizedServiceName = serviceName.toLowerCase();
+
+  if (normalizedServiceName.includes("barba")) {
+    return (
+      <svg width="42" height="42" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M7 14c0 2.76 2.24 5 5 5s5-2.24 5-5v-2H7v2zm5-12C8.13 2 5 5.13 5 9v1h14V9c0-3.87-3.13-7-7-7z" />
+      </svg>
+    );
+  }
+
+  if (normalizedServiceName.includes("cabelo")) {
+    return (
+      <svg width="42" height="42" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M9.64 7.64L12 10l2.36-2.36 1.41 1.41L13.41 11.4l2.36 2.36-1.41 1.41L12 12.81l-2.36 2.36-1.41-1.41 2.36-2.36-2.36-2.36 1.41-1.41z" />
+      </svg>
+    );
+  }
+
   return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
+    <svg width="42" height="42" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 12c2.21 0 4-1.79 4-4S14.21 4 12 4 8 5.79 8 8s1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+    </svg>
   );
 }
 
-function appointmentOverlapsSlot({
-  appointmentStartMinutes,
-  appointmentDurationMinutes,
-  slotStartMinutes,
-  slotDurationMinutes,
-}) {
-  const appointmentEnd = appointmentStartMinutes + appointmentDurationMinutes;
-  const slotEnd = slotStartMinutes + slotDurationMinutes;
+function mapServiceFromApi(service) {
+  return {
+    id: service.service_id,
+    title: service.service_name,
+    description: service.service_description,
+    priceLabel: `R$ ${service.price}`,
+    priceValue: Number(service.price),
+    durationMinutes: service.duration,
+    icon: getServiceIcon(service.service_name),
+  };
+}
 
-  return slotStartMinutes < appointmentEnd && slotEnd > appointmentStartMinutes;
+function mapBarberFromApi(barber, index) {
+  const fallbackImages = ["/julian_barber.jpg", "/elias_barber.jpg"];
+
+  return {
+    id: barber.barber_id,
+    name: barber.barber_name,
+    role: "Barbeiro",
+    image: fallbackImages[index % fallbackImages.length],
+    alt: `Retrato de ${barber.barber_name}.`,
+    workStart: formatApiTimeToMeridian(barber.work_start || "08:00"),
+    workEnd: formatApiTimeToMeridian(barber.work_end || "18:00"),
+    lunchStart: formatApiTimeToMeridian(barber.lunch_start),
+    lunchEnd: formatApiTimeToMeridian(barber.lunch_end),
+  };
 }
 
 export default function EmperorBarbershopPage() {
   const router = useRouter();
-
-  const services = useMemo(() => {
-    return [
-      {
-        id: "haircut",
-        title: "Corte de Cabelo",
-        description: "Corte preciso, lavagem e finalização",
-        priceLabel: "$40",
-        priceValue: 40,
-        durationMinutes: 45,
-        icon: (
-          <svg width="42" height="42" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M9.64 7.64L12 10l2.36-2.36 1.41 1.41L13.41 11.4l2.36 2.36-1.41 1.41L12 12.81l-2.36 2.36-1.41-1.41 2.36-2.36-2.36-2.36 1.41-1.41z" />
-          </svg>
-        ),
-      },
-      {
-        id: "beard",
-        title: "Barba",
-        description: "Toalha quente, desenho e hidratação",
-        priceLabel: "$20",
-        priceValue: 20,
-        durationMinutes: 30,
-        icon: (
-          <svg width="42" height="42" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M7 14c0 2.76 2.24 5 5 5s5-2.24 5-5v-2H7v2zm5-12C8.13 2 5 5.13 5 9v1h14V9c0-3.87-3.13-7-7-7z" />
-          </svg>
-        ),
-      },
-      {
-        id: "full",
-        title: "Cabelo e Barba",
-        description: "A experiência completa",
-        priceLabel: "$55",
-        priceValue: 55,
-        durationMinutes: 75,
-        icon: (
-          <svg width="42" height="42" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 12c2.21 0 4-1.79 4-4S14.21 4 12 4 8 5.79 8 8s1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-          </svg>
-        ),
-      },
-    ];
-  }, []);
-
-  const barbers = useMemo(() => {
-    return [
-      {
-        id: "julian",
-        name: "Julian",
-        role: "Barbeiro Master",
-        image: "/julian_barber.jpg",
-        alt: "Retrato de um barbeiro profissional em ambiente de barbearia.",
-        workStart: "09:00 AM",
-        workEnd: "06:00 PM",
-        lunchStart: "12:00 PM",
-        lunchEnd: "01:00 PM",
-      },
-      {
-        id: "elias",
-        name: "Elias",
-        role: "Especialista em Grooming",
-        image: "/elias_barber.jpg",
-        alt: "Barbeiro trabalhando com precisão na barba de um cliente.",
-        workStart: "10:00 AM",
-        workEnd: "07:00 PM",
-        lunchStart: "01:00 PM",
-        lunchEnd: "02:00 PM",
-      },
-    ];
-  }, []);
 
   const today = useMemo(() => {
     const t = new Date();
@@ -533,50 +574,10 @@ export default function EmperorBarbershopPage() {
     return t;
   }, []);
 
-  const simulatedAppointments = useMemo(() => {
-    const base = new Date();
-    base.setHours(0, 0, 0, 0);
-
-    const tomorrow = new Date(base);
-    tomorrow.setDate(base.getDate() + 1);
-
-    const afterTomorrow = new Date(base);
-    afterTomorrow.setDate(base.getDate() + 2);
-
-    return [
-      {
-        id: "a1",
-        barberId: "elias",
-        date: tomorrow,
-        startTime: "11:30 AM",
-        durationMinutes: 30,
-      },
-      {
-        id: "a2",
-        barberId: "elias",
-        date: tomorrow,
-        startTime: "02:30 PM",
-        durationMinutes: 45,
-      },
-      {
-        id: "a3",
-        barberId: "julian",
-        date: tomorrow,
-        startTime: "09:00 AM",
-        durationMinutes: 75,
-      },
-      {
-        id: "a4",
-        barberId: "julian",
-        date: afterTomorrow,
-        startTime: "03:45 PM",
-        durationMinutes: 45,
-      },
-    ];
-  }, []);
-
-  const [selectedService, setSelectedService] = useState(services[1]);
-  const [selectedBarber, setSelectedBarber] = useState(barbers[1]);
+  const [services, setServices] = useState([]);
+  const [barbers, setBarbers] = useState([]);
+  const [selectedService, setSelectedService] = useState(null);
+  const [selectedBarber, setSelectedBarber] = useState(null);
 
   const [currentMonth, setCurrentMonth] = useState(
     new Date(today.getFullYear(), today.getMonth(), 1),
@@ -586,6 +587,82 @@ export default function EmperorBarbershopPage() {
   const [selectedTime, setSelectedTime] = useState(null);
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
+
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    if (router.query.toast !== "appointment-cancelled") return;
+
+    showToast.success("Agendamento cancelado com sucesso", {
+      duration: 4000,
+      position: "top-right",
+      transition: "bounceIn",
+      progress: true,
+      sound: false,
+    });
+
+    router.replace("/appointment/emperor-barbershop", undefined, {
+      shallow: true,
+    });
+  }, [router]);
+
+  useEffect(() => {
+    let shouldIgnore = false;
+
+    async function loadBookingData() {
+      try {
+        setIsLoadingData(true);
+        setLoadError("");
+
+        const [servicesResponse, barbersResponse] = await Promise.all([
+          fetch("/api/v1/services"),
+          fetch("/api/v1/barbers"),
+        ]);
+
+        const servicesBody = await servicesResponse.json();
+        const barbersBody = await barbersResponse.json();
+
+        if (!servicesResponse.ok || !barbersResponse.ok) {
+          throw new Error(
+            servicesBody?.message ||
+              barbersBody?.message ||
+              "Não foi possível carregar os dados de agendamento.",
+          );
+        }
+
+        const mappedServices = servicesBody.map(mapServiceFromApi);
+        const mappedBarbers = barbersBody.map(mapBarberFromApi);
+
+        if (shouldIgnore) return;
+
+        setServices(mappedServices);
+        setBarbers(mappedBarbers);
+        setSelectedService(mappedServices[0] || null);
+        setSelectedBarber(mappedBarbers[0] || null);
+      } catch (error) {
+        if (shouldIgnore) return;
+
+        setLoadError(
+          error.message || "Não foi possível carregar os dados de agendamento.",
+        );
+      } finally {
+        if (!shouldIgnore) {
+          setIsLoadingData(false);
+        }
+      }
+    }
+
+    loadBookingData();
+
+    return () => {
+      shouldIgnore = true;
+    };
+  }, []);
 
   const calendarCells = useMemo(() => {
     return getCalendarCells(currentMonth);
@@ -604,44 +681,29 @@ export default function EmperorBarbershopPage() {
     });
   }, [selectedBarber, selectedService]);
 
-  const bookedAppointmentsForDay = useMemo(() => {
-    if (!selectedDate || !selectedBarber) return [];
-
-    return simulatedAppointments.filter(
-      (apt) =>
-        apt.barberId === selectedBarber.id &&
-        areDatesSameDay(apt.date, selectedDate),
-    );
-  }, [selectedDate, selectedBarber, simulatedAppointments]);
-
   const availableSlotsWithBlockedInfo = useMemo(() => {
-    if (!selectedService) return [];
-
-    return generatedSlots.map((slotTime) => {
-      const slotStartMinutes = parseTimeToMinutes(slotTime);
-
-      const isBooked = bookedAppointmentsForDay.some((apt) => {
-        const aptStartMinutes = parseTimeToMinutes(apt.startTime);
-
-        return appointmentOverlapsSlot({
-          appointmentStartMinutes: aptStartMinutes,
-          appointmentDurationMinutes: apt.durationMinutes,
-          slotStartMinutes,
-          slotDurationMinutes: selectedService.durationMinutes,
-        });
-      });
-
-      return {
-        time: slotTime,
-        blocked: isBooked,
-      };
-    });
-  }, [generatedSlots, bookedAppointmentsForDay, selectedService]);
+    return generatedSlots.map((slotTime) => ({
+      time: slotTime,
+      blocked: false,
+    }));
+  }, [generatedSlots]);
 
   const total = selectedService?.priceValue ?? 0;
   const clientPhoneDigits = getPhoneDigits(clientPhone);
-  const isClientNameValid = clientName.trim().length >= 3;
   const isClientPhoneValid = clientPhoneDigits.length === 11;
+  const isClientNameValid = clientName.trim().length > 0;
+  const hasServices = services.length > 0;
+  const hasBarbers = barbers.length > 0;
+  const canLoadBookingFlow = hasServices && hasBarbers;
+
+  const canConfirmAppointment =
+    Boolean(selectedService) &&
+    Boolean(selectedBarber) &&
+    Boolean(selectedDate) &&
+    Boolean(selectedTime) &&
+    isClientNameValid &&
+    isClientPhoneValid &&
+    !isSubmitting;
 
   function goPrevMonth() {
     setCurrentMonth((prev) => {
@@ -675,48 +737,52 @@ export default function EmperorBarbershopPage() {
     });
   }
 
-  function handleConfirm() {
-    if (!selectedDate || !selectedTime) {
-      alert("Selecione uma data e um horário válido antes de confirmar.");
+  async function handleConfirm() {
+    if (!canConfirmAppointment) {
+      setSubmitError(
+        "Preencha serviço, barbeiro, data, horário, nome e telefone antes de confirmar.",
+      );
       return;
     }
 
-    if (!isClientNameValid) {
-      alert("Informe seu nome completo antes de confirmar.");
-      return;
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const response = await fetch("/api/v1/appointments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          barber_id: selectedBarber.id,
+          appointment_datetime: buildAppointmentDateTime(
+            selectedDate,
+            selectedTime,
+          ),
+          service_ids: [selectedService.id],
+          client_name: clientName.trim(),
+          client_phone: clientPhoneDigits || null,
+        }),
+      });
+
+      const responseBody = await response.json();
+
+      if (!response.ok) {
+        setSubmitError(
+          responseBody.message || "Não foi possível criar o agendamento.",
+        );
+        return;
+      }
+
+      await router.push(`/appointment/summary/${responseBody.appointment_id}`);
+    } catch {
+      setSubmitError(
+        "Não foi possível criar o agendamento. Tente novamente em instantes.",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (!isClientPhoneValid) {
-      alert("Informe um telefone válido com DDD antes de confirmar.");
-      return;
-    }
-
-    const blocked = availableSlotsWithBlockedInfo.find(
-      (slot) => slot.time === selectedTime,
-    )?.blocked;
-
-    if (blocked) {
-      alert("Este horário já está reservado. Escolha outro horário.");
-      return;
-    }
-
-    const appointmentId = `MX-${Date.now().toString().slice(-6)}`;
-
-    router.push({
-      pathname: "/appointment/summary/[appointment_id]",
-      query: {
-        appointment_id: appointmentId,
-        service: selectedService.title,
-        barber: selectedBarber.name,
-        date: formatDateForQuery(selectedDate),
-        time: selectedTime,
-        duration: selectedService.durationMinutes,
-        price: selectedService.priceValue,
-        clientName: clientName.trim(),
-        phone: clientPhone,
-        code: appointmentId,
-      },
-    });
   }
 
   return (
@@ -724,353 +790,421 @@ export default function EmperorBarbershopPage() {
       <TopNavbar />
 
       <main className="max-w-7xl mx-auto px-8 py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-          <div className="lg:col-span-8 space-y-24">
-            <section>
-              <StepTitle>Passo 1: Escolha seu Serviço</StepTitle>
+        {isLoadingData && (
+          <div className="bg-surface-container-high p-12 text-center">
+            <span className="text-primary text-5xl mb-6 block">✦</span>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {services.map((service) => (
-                  <div
-                    key={service.id}
-                    className={service.id === "full" ? "md:col-span-2" : ""}
-                  >
-                    <ServiceCard
-                      service={service}
-                      selected={selectedService?.id === service.id}
-                      onSelect={(svc) => {
-                        setSelectedService(svc);
+            <h1 className="font-headline text-5xl italic text-primary mb-4">
+              Carregando agendamento
+            </h1>
+
+            <p className="font-label text-xs uppercase tracking-[0.2em] text-on-surface-variant opacity-70">
+              Estamos buscando serviços e barbeiros disponíveis.
+            </p>
+          </div>
+        )}
+
+        {!isLoadingData && loadError && (
+          <div className="bg-surface-container-high p-12 text-center">
+            <span className="text-primary text-5xl mb-6 block">!</span>
+
+            <h1 className="font-headline text-5xl italic text-primary mb-4">
+              Não foi possível carregar
+            </h1>
+
+            <p className="font-label text-xs uppercase tracking-[0.2em] text-on-surface-variant opacity-70">
+              {loadError}
+            </p>
+          </div>
+        )}
+
+        {!isLoadingData && !loadError && !canLoadBookingFlow && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {!hasServices && (
+              <EmptyState
+                title="Nenhum serviço disponível"
+                description="A barbearia ainda não cadastrou serviços para agendamento."
+              />
+            )}
+
+            {!hasBarbers && (
+              <EmptyState
+                title="Nenhum barbeiro disponível"
+                description="A barbearia ainda não cadastrou barbeiros para agendamento."
+              />
+            )}
+          </div>
+        )}
+
+        {!isLoadingData && !loadError && canLoadBookingFlow && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+            <div className="lg:col-span-8 space-y-24">
+              <section>
+                <StepTitle>Passo 1: Escolha seu Serviço</StepTitle>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {services.map((service) => (
+                    <div key={service.id}>
+                      <ServiceCard
+                        service={service}
+                        selected={selectedService?.id === service.id}
+                        onSelect={(svc) => {
+                          setSelectedService(svc);
+                          setSelectedTime(null);
+                          setSubmitError("");
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section>
+                <StepTitle>Passo 2: Selecione seu Barbeiro</StepTitle>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-10 max-w-5xl">
+                  {barbers.map((barber) => (
+                    <BarberCard
+                      key={barber.id}
+                      barber={barber}
+                      selected={selectedBarber?.id === barber.id}
+                      onSelect={(b) => {
+                        setSelectedBarber(b);
                         setSelectedTime(null);
+                        setSubmitError("");
                       }}
                     />
+                  ))}
+                </div>
+              </section>
+
+              <section>
+                <StepTitle>Passo 3: Escolha Data e Horário</StepTitle>
+
+                <div className="bg-surface-container-high p-8 grid grid-cols-1 md:grid-cols-2 gap-12">
+                  <div>
+                    <div className="flex justify-between items-center mb-8">
+                      <h5 className="font-headline text-2xl italic">
+                        {formatMonthYear(currentMonth)}
+                      </h5>
+
+                      <div className="flex gap-4">
+                        <button
+                          type="button"
+                          onClick={goPrevMonth}
+                          className="cursor-pointer hover:text-primary"
+                          aria-label="Mês anterior"
+                        >
+                          ◀
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={goNextMonth}
+                          className="cursor-pointer hover:text-primary"
+                          aria-label="Próximo mês"
+                        >
+                          ▶
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-7 text-center text-[10px] font-label text-primary mb-4 opacity-50">
+                      <div>SEG</div>
+                      <div>TER</div>
+                      <div>QUA</div>
+                      <div>QUI</div>
+                      <div>SEX</div>
+                      <div>SÁB</div>
+                      <div>DOM</div>
+                    </div>
+
+                    <div className="grid grid-cols-7 text-center gap-y-4">
+                      {calendarCells.map((cell, idx) => (
+                        <CalendarDayButton
+                          key={`${cell.monthOffset}-${cell.day}-${idx}`}
+                          cell={cell}
+                          active={
+                            selectedDate &&
+                            cell.date.toDateString() ===
+                              selectedDate.toDateString()
+                          }
+                          onSelect={(date) => {
+                            setSelectedDate(date);
+                            setSelectedTime(null);
+                            setSubmitError("");
+                          }}
+                        />
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
-            </section>
 
-            <section>
-              <StepTitle>Passo 2: Selecione seu Barbeiro</StepTitle>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-10 max-w-5xl">
-                {barbers.map((barber) => (
-                  <BarberCard
-                    key={barber.id}
-                    barber={barber}
-                    selected={selectedBarber?.id === barber.id}
-                    onSelect={(b) => {
-                      setSelectedBarber(b);
-                      setSelectedTime(null);
-                    }}
-                  />
-                ))}
-              </div>
-            </section>
-
-            <section>
-              <StepTitle>Passo 3: Escolha Data e Horário</StepTitle>
-
-              <div className="bg-surface-container-high p-8 grid grid-cols-1 md:grid-cols-2 gap-12">
-                <div>
-                  <div className="flex justify-between items-center mb-8">
-                    <h5 className="font-headline text-2xl italic">
-                      {formatMonthYear(currentMonth)}
+                  <div className="space-y-4">
+                    <h5 className="font-headline text-2xl italic mb-6">
+                      HORÁRIOS DISPONÍVEIS
                     </h5>
 
-                    <div className="flex gap-4">
-                      <button
-                        type="button"
-                        onClick={goPrevMonth}
-                        className="cursor-pointer hover:text-primary"
-                        aria-label="Mês anterior"
-                      >
-                        ◀
-                      </button>
+                    <div className="grid grid-cols-2 gap-3 h-64 overflow-y-auto pr-4 custom-scrollbar">
+                      {availableSlotsWithBlockedInfo.length === 0 && (
+                        <div className="col-span-2 text-on-surface-variant text-xs uppercase tracking-widest opacity-60">
+                          Nenhum horário disponível
+                        </div>
+                      )}
 
-                      <button
-                        type="button"
-                        onClick={goNextMonth}
-                        className="cursor-pointer hover:text-primary"
-                        aria-label="Próximo mês"
-                      >
-                        ▶
-                      </button>
+                      {availableSlotsWithBlockedInfo.map((slot) => (
+                        <TimeSlotButton
+                          key={slot.time}
+                          time={slot.time}
+                          active={selectedTime === slot.time}
+                          disabled={slot.blocked}
+                          onClick={(time) => {
+                            if (!slot.blocked) {
+                              setSelectedTime(time);
+                              setSubmitError("");
+                            }
+                          }}
+                        />
+                      ))}
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-7 text-center text-[10px] font-label text-primary mb-4 opacity-50">
-                    <div>SEG</div>
-                    <div>TER</div>
-                    <div>QUA</div>
-                    <div>QUI</div>
-                    <div>SEX</div>
-                    <div>SÁB</div>
-                    <div>DOM</div>
-                  </div>
-
-                  <div className="grid grid-cols-7 text-center gap-y-4">
-                    {calendarCells.map((cell, idx) => (
-                      <CalendarDayButton
-                        key={`${cell.monthOffset}-${cell.day}-${idx}`}
-                        cell={cell}
-                        active={
-                          selectedDate &&
-                          cell.date.toDateString() ===
-                            selectedDate.toDateString()
-                        }
-                        onSelect={(date) => {
-                          setSelectedDate(date);
-                          setSelectedTime(null);
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h5 className="font-headline text-2xl italic mb-6">
-                    HORÁRIOS DISPONÍVEIS
-                  </h5>
-
-                  <div className="grid grid-cols-2 gap-3 h-64 overflow-y-auto pr-4 custom-scrollbar">
-                    {availableSlotsWithBlockedInfo.length === 0 && (
-                      <div className="col-span-2 text-on-surface-variant text-xs uppercase tracking-widest opacity-60">
-                        Nenhum horário disponível
-                      </div>
+                    {selectedService && (
+                      <p className="text-[10px] uppercase tracking-widest text-on-surface-variant opacity-50">
+                        Duração do serviço: {selectedService.durationMinutes}{" "}
+                        min
+                      </p>
                     )}
 
-                    {availableSlotsWithBlockedInfo.map((slot) => (
-                      <TimeSlotButton
-                        key={slot.time}
-                        time={slot.time}
-                        active={selectedTime === slot.time}
-                        disabled={slot.blocked}
-                        onClick={(time) => {
-                          if (!slot.blocked) setSelectedTime(time);
-                        }}
-                      />
-                    ))}
-                  </div>
-
-                  <p className="text-[10px] uppercase tracking-widest text-on-surface-variant opacity-50">
-                    Duração do serviço: {selectedService.durationMinutes} min
-                  </p>
-
-                  <p className="text-[10px] uppercase tracking-widest text-on-surface-variant opacity-50">
-                    Horários bloqueados = já reservados
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <section>
-              <StepTitle>Passo 4: Informe seus Dados</StepTitle>
-
-              <div className="bg-surface-container-high p-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <label
-                      className="block font-label text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-3"
-                      htmlFor="clientName"
-                    >
-                      Nome do Cliente
-                    </label>
-
-                    <input
-                      id="clientName"
-                      name="clientName"
-                      type="text"
-                      value={clientName}
-                      onChange={(event) => setClientName(event.target.value)}
-                      placeholder="Seu nome completo"
-                      autoComplete="name"
-                      className="w-full bg-surface-container-lowest border-none border-b-2 border-outline-variant/30 focus:border-primary focus:ring-0 text-on-surface placeholder:text-on-surface-variant/30 py-4 px-3 transition-colors duration-300 font-body outline-none"
-                    />
-
-                    {clientName.length > 0 && !isClientNameValid && (
-                      <p className="mt-3 text-[10px] uppercase tracking-widest text-[#ffb4ab]">
-                        Informe ao menos 3 caracteres.
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      className="block font-label text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-3"
-                      htmlFor="clientPhone"
-                    >
-                      Telefone do Cliente
-                    </label>
-
-                    <input
-                      id="clientPhone"
-                      name="clientPhone"
-                      type="tel"
-                      value={clientPhone}
-                      onChange={(event) =>
-                        setClientPhone(formatPhone(event.target.value))
-                      }
-                      placeholder="(00) 00000-0000"
-                      autoComplete="tel"
-                      className="w-full bg-surface-container-lowest border-none border-b-2 border-outline-variant/30 focus:border-primary focus:ring-0 text-on-surface placeholder:text-on-surface-variant/30 py-4 px-3 transition-colors duration-300 font-body outline-none"
-                    />
-
-                    {clientPhone.length > 0 && !isClientPhoneValid && (
-                      <p className="mt-3 text-[10px] uppercase tracking-widest text-[#ffb4ab]">
-                        Informe um telefone brasileiro válido com DDD.
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <p className="mt-6 text-[10px] uppercase tracking-widest text-on-surface-variant opacity-60">
-                  Usaremos estes dados para identificar e confirmar seu
-                  agendamento.
-                </p>
-              </div>
-            </section>
-          </div>
-
-          <div className="lg:col-span-4">
-            <div className="sticky top-32 space-y-8">
-              <section className="bg-surface-container-high p-10">
-                <div className="flex items-center gap-6 mb-12">
-                  <div className="w-1 h-12 bg-primary" />
-                  <h2 className="font-headline text-4xl font-bold italic tracking-tight">
-                    Resumo
-                  </h2>
-                </div>
-
-                <div className="space-y-8">
-                  <div className="flex justify-between items-end border-b border-outline-variant pb-4">
-                    <div>
-                      <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
-                        SERVIÇO
-                      </p>
-                      <p className="font-headline text-2xl">
-                        {selectedService.title}
-                      </p>
-                    </div>
-                    <p className="font-body text-on-surface">
-                      ${selectedService.priceValue}.00
-                    </p>
-                  </div>
-
-                  <div className="flex justify-between items-end border-b border-outline-variant pb-4">
-                    <div>
-                      <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
-                        BARBEIRO
-                      </p>
-                      <p className="font-headline text-2xl">
-                        {selectedBarber.name}
-                      </p>
-                    </div>
-
-                    <span className="text-primary">
-                      <svg
-                        width="26"
-                        height="26"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M12 1l3 7 8 .7-6 5.1 2 7.7-7-4.3-7 4.3 2-7.7-6-5.1L9 8z" />
-                      </svg>
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-end border-b border-outline-variant pb-4">
-                    <div>
-                      <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
-                        AGENDAMENTO
-                      </p>
-
-                      <p className="font-headline text-2xl">
-                        {selectedDate && selectedTime
-                          ? `${formatSelectedDate(selectedDate)} ${selectedTime}`
-                          : "Selecione data e horário"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-end border-b border-outline-variant pb-4">
-                    <div>
-                      <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
-                        CLIENTE
-                      </p>
-
-                      <p className="font-headline text-2xl">
-                        {clientName || "Informe seu nome"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-end border-b border-outline-variant pb-4">
-                    <div>
-                      <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
-                        TELEFONE
-                      </p>
-
-                      <p className="font-headline text-2xl">
-                        {clientPhone || "Informe seu telefone"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="pt-8">
-                    <div className="flex justify-between items-center mb-8">
-                      <span className="font-headline text-3xl italic">
-                        Total
-                      </span>
-                      <span className="font-headline text-4xl text-primary font-bold">
-                        ${total}.00
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleConfirm}
-                      className="w-full py-6 bg-primary text-on-primary font-bold uppercase tracking-widest text-sm shadow-[0_14px_30px_rgba(17,14,8,0.35)] hover:bg-[#f0ca55] hover:shadow-[4px_4px_0px_rgba(233,195,73,0.25)] active:translate-y-[1px] active:scale-[0.99] active:shadow-none transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:hover:shadow-none"
-                      disabled={
-                        !selectedDate ||
-                        !selectedTime ||
-                        !isClientNameValid ||
-                        !isClientPhoneValid
-                      }
-                    >
-                      Confirmar Agendamento
-                      <span className="text-xl">→</span>
-                    </button>
-
-                    <p className="text-center font-label text-[10px] text-on-surface-variant mt-6 uppercase tracking-widest opacity-50">
-                      Cancelamento com 24h de antecedência
+                    <p className="text-[10px] uppercase tracking-widest text-on-surface-variant opacity-50">
+                      A disponibilidade final será validada ao confirmar.
                     </p>
                   </div>
                 </div>
               </section>
 
-              <div className="relative bg-surface-container-high h-64 overflow-hidden group">
-                <Image
-                  className="object-cover opacity-40 group-hover:scale-110 transition-transform duration-700"
-                  src="/barbershop-interior.png"
-                  alt="Interior moderno e luxuoso de uma barbearia."
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 33vw"
-                />
+              <section>
+                <StepTitle>Passo 4: Informe seus Dados</StepTitle>
 
-                <div className="absolute inset-0 flex flex-col justify-center items-center p-8 text-center">
-                  <span className="text-primary text-5xl mb-4">✦</span>
+                <div className="bg-surface-container-high p-8">
+                  <div className="max-w-xl space-y-8">
+                    <div>
+                      <label
+                        className="block font-label text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-3"
+                        htmlFor="clientName"
+                      >
+                        Nome do Cliente
+                      </label>
 
-                  <h6 className="font-headline text-2xl italic mb-2">
-                    O Padrão Maximus
-                  </h6>
+                      <input
+                        id="clientName"
+                        name="clientName"
+                        type="text"
+                        value={clientName}
+                        onChange={(event) => {
+                          setClientName(event.target.value);
+                          setSubmitError("");
+                        }}
+                        placeholder="Seu nome"
+                        autoComplete="name"
+                        className="w-full bg-surface-container-lowest border-none border-b-2 border-outline-variant/30 focus:border-primary focus:ring-0 text-on-surface placeholder:text-on-surface-variant/30 py-4 px-3 transition-colors duration-300 font-body outline-none"
+                      />
 
-                  <p className="text-xs uppercase tracking-widest opacity-70">
-                    Onde a precisão moderna encontra a tradição
-                  </p>
+                      {clientName.length > 0 && !isClientNameValid && (
+                        <p className="mt-3 text-[10px] uppercase tracking-widest text-[#ffb4ab]">
+                          Informe seu nome para continuar.
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label
+                        className="block font-label text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-3"
+                        htmlFor="clientPhone"
+                      >
+                        Telefone do Cliente
+                      </label>
+
+                      <input
+                        id="clientPhone"
+                        name="clientPhone"
+                        type="tel"
+                        value={clientPhone}
+                        onChange={(event) => {
+                          setClientPhone(formatPhone(event.target.value));
+                          setSubmitError("");
+                        }}
+                        placeholder="(00) 00000-0000"
+                        autoComplete="tel"
+                        className="w-full bg-surface-container-lowest border-none border-b-2 border-outline-variant/30 focus:border-primary focus:ring-0 text-on-surface placeholder:text-on-surface-variant/30 py-4 px-3 transition-colors duration-300 font-body outline-none"
+                      />
+
+                      <p className="mt-4 text-[10px] uppercase tracking-widest text-on-surface-variant opacity-60">
+                        Usaremos este número para identificar ou confirmar seu
+                        agendamento.
+                      </p>
+
+                      {clientPhone.length > 0 && !isClientPhoneValid && (
+                        <p className="mt-3 text-[10px] uppercase tracking-widest text-[#ffb4ab]">
+                          Informe um telefone brasileiro válido com DDD.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div className="lg:col-span-4">
+              <div className="sticky top-32 space-y-8">
+                <section className="bg-surface-container-high p-10">
+                  <div className="flex items-center gap-6 mb-12">
+                    <div className="w-1 h-12 bg-primary" />
+                    <h2 className="font-headline text-4xl font-bold italic tracking-tight">
+                      Resumo
+                    </h2>
+                  </div>
+
+                  <div className="space-y-8">
+                    <div className="flex justify-between items-end border-b border-outline-variant pb-4">
+                      <div>
+                        <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
+                          SERVIÇO
+                        </p>
+                        <p className="font-headline text-2xl">
+                          {selectedService?.title ||
+                            "Nenhum serviço selecionado"}
+                        </p>
+                      </div>
+
+                      <p className="font-body text-on-surface">
+                        {selectedService
+                          ? `R$ ${selectedService.priceValue.toFixed(2)}`
+                          : "R$ 0,00"}
+                      </p>
+                    </div>
+
+                    <div className="flex justify-between items-end border-b border-outline-variant pb-4">
+                      <div>
+                        <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
+                          BARBEIRO
+                        </p>
+                        <p className="font-headline text-2xl">
+                          {selectedBarber?.name ||
+                            "Nenhum barbeiro selecionado"}
+                        </p>
+                      </div>
+
+                      <span className="text-primary">
+                        <svg
+                          width="26"
+                          height="26"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                        >
+                          <path d="M12 1l3 7 8 .7-6 5.1 2 7.7-7-4.3-7 4.3 2-7.7-6-5.1L9 8z" />
+                        </svg>
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-end border-b border-outline-variant pb-4">
+                      <div>
+                        <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
+                          AGENDAMENTO
+                        </p>
+
+                        <p className="font-headline text-2xl">
+                          {selectedDate && selectedTime
+                            ? `${formatSelectedDate(selectedDate)} ${selectedTime}`
+                            : "Selecione data e horário"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-end border-b border-outline-variant pb-4">
+                      <div>
+                        <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
+                          CLIENTE
+                        </p>
+
+                        <p className="font-headline text-2xl">
+                          {clientName || "Informe seu nome"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-end border-b border-outline-variant pb-4">
+                      <div>
+                        <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
+                          TELEFONE
+                        </p>
+
+                        <p className="font-headline text-2xl">
+                          {clientPhone || "Informe seu telefone"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {submitError && (
+                      <div className="bg-[#ffb4ab]/10 border border-[#ffb4ab]/40 p-4">
+                        <p className="text-[#ffb4ab] text-[10px] uppercase tracking-widest">
+                          {submitError}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="pt-8">
+                      <div className="flex justify-between items-center mb-8">
+                        <span className="font-headline text-3xl italic">
+                          Total
+                        </span>
+                        <span className="font-headline text-4xl text-primary font-bold">
+                          R$ {total.toFixed(2)}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleConfirm}
+                        className="w-full py-6 bg-primary text-on-primary font-bold uppercase tracking-widest text-sm shadow-[0_14px_30px_rgba(17,14,8,0.35)] hover:bg-[#f0ca55] hover:shadow-[4px_4px_0px_rgba(233,195,73,0.25)] active:translate-y-[1px] active:scale-[0.99] active:shadow-none transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:hover:shadow-none"
+                        disabled={!canConfirmAppointment}
+                      >
+                        {isSubmitting
+                          ? "Confirmando..."
+                          : "Confirmar Agendamento"}
+                        <span className="text-xl">→</span>
+                      </button>
+
+                      <p className="text-center font-label text-[10px] text-on-surface-variant mt-6 uppercase tracking-widest opacity-50">
+                        Cancelamento com 24h de antecedência
+                      </p>
+                    </div>
+                  </div>
+                </section>
+
+                <div className="relative bg-surface-container-high h-64 overflow-hidden group">
+                  <Image
+                    className="object-cover opacity-40 group-hover:scale-110 transition-transform duration-700"
+                    src="/barbershop-interior.png"
+                    alt="Interior moderno e luxuoso de uma barbearia."
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 33vw"
+                  />
+
+                  <div className="absolute inset-0 flex flex-col justify-center items-center p-8 text-center">
+                    <span className="text-primary text-5xl mb-4">✦</span>
+
+                    <h6 className="font-headline text-2xl italic mb-2">
+                      O Padrão Maximus
+                    </h6>
+
+                    <p className="text-xs uppercase tracking-widest opacity-70">
+                      Onde a precisão moderna encontra a tradição
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </main>
 
       <Footer />
