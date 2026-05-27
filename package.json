@@ -22,7 +22,11 @@
     "lint:prettier:check": "prettier --check .",
     "lint:prettier:fix": "prettier . --write --ignore-path=.prettierignore",
     "lint:eslint:check": "eslint . --max-warnings=0",
-    "lint:eslint:fix": "eslint . --fix"
+    "lint:eslint:fix": "eslint . --fix",
+    "db:seed:admin": "node src/scripts/seed-admin.mjs",
+    "db:seed:admin:dev": "dotenv -e .env.development -- npm run db:seed:admin",
+    "db:seed:admin:test": "dotenv -e .env.test -- npm run db:seed:admin",
+    "db:seed:admin:prod": "dotenv -e .env.production -- npm run db:seed:admin"
   },
   "author": "",
   "license": "MIT",
