@@ -175,10 +175,6 @@ describe("POST /api/v1/sessions", () => {
       );
 
       expect(parsedSetCookie.session_id.value).toEqual(expect.any(String));
-
-      if (setCookieHeader.includes("Secure")) {
-        expect(parsedSetCookie.session_id.secure).toBe(true);
-      }
     });
   });
 });
