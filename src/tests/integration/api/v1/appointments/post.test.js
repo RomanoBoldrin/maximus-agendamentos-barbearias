@@ -371,7 +371,9 @@ describe("POST /api/v1/appointments", () => {
       const responseBody = await response.json();
 
       expect(responseBody.name).toBe("ValidationError");
-      expect(responseBody.message).toContain("already exists");
+      expect(responseBody.message).toContain(
+        "Um agendamento já existe para este barbeiro neste horário.",
+      );
     });
 
     test("Duplicate service IDs returns 400", async () => {

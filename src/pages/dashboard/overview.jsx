@@ -1,7 +1,37 @@
 import Image from "next/image";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import pageAuthorization from "@/infra/pageAuthorization";
+
+export async function getServerSideProps(context) {
+  const result = await pageAuthorization.requireAdminPage(context);
+  if (result.notFound) return { notFound: true };
+  return { props: {} };
+}
+
+// ---------------------------------------------------------------------------
+// Status helpers
+// ---------------------------------------------------------------------------
+
+function getAppointmentStatusLabel(status) {
+  const labels = {
+    AGENDADO: "Agendado",
+    CONCLUIDO: "Concluído",
+    CANCELADO: "Cancelado",
+    FALTOU: "Faltou",
+  };
+  return labels[status] || status;
+}
+
+function isCancelledAppointment(status) {
+  return status === "CANCELADO";
+}
+
+// ---------------------------------------------------------------------------
+// Components
+// ---------------------------------------------------------------------------
 
 function StatCard({ label, value, subtitle, progressPercent, footer }) {
   return (
@@ -46,45 +76,79 @@ function AppointmentRow({
   barberName,
   status,
 }) {
+  const cancelled = isCancelledAppointment(status);
+
   const statusConfig = {
-    confirmado: {
-      text: "Confirmado",
+    AGENDADO: {
+      text: getAppointmentStatusLabel("AGENDADO"),
       className: "text-on-surface-variant",
       dot: "bg-primary",
     },
-    progresso: {
-      text: "Em Progresso",
+    CONCLUIDO: {
+      text: getAppointmentStatusLabel("CONCLUIDO"),
       className: "text-primary font-bold",
       dot: "bg-primary animate-pulse",
     },
-    pendente: {
-      text: "Pendente",
-      className: "text-on-surface-variant opacity-50",
+    CANCELADO: {
+      text: getAppointmentStatusLabel("CANCELADO"),
+      className: "text-[#ffb4ab] font-bold",
+      dot: "bg-[#ffb4ab]",
+    },
+    FALTOU: {
+      text: getAppointmentStatusLabel("FALTOU"),
+      className: "text-on-surface-variant opacity-60",
       dot: "bg-outline",
     },
   };
 
-  const config = statusConfig[status];
+  const config = statusConfig[status] ?? statusConfig.AGENDADO;
 
   return (
-    <div className="grid grid-cols-[0.8fr_1.5fr_1.5fr_1.2fr_1.2fr] gap-4 px-8 py-6 items-center border-b border-outline-variant/10 hover:bg-surface-container-high/50 transition-colors cursor-pointer">
-      <div className="font-headline text-xl font-bold text-primary">{time}</div>
+    <div
+      className={`grid grid-cols-[0.8fr_1.5fr_1.5fr_1.2fr_1.2fr] gap-4 px-8 py-6 items-center border-b border-outline-variant/10 transition-colors cursor-pointer ${
+        cancelled
+          ? "bg-surface-container-lowest hover:bg-surface-container-low/60"
+          : "hover:bg-surface-container-high/50"
+      }`}
+    >
+      {/* Time */}
+      <div
+        className={`font-headline text-xl font-bold ${cancelled ? "text-on-surface-variant" : "text-primary"}`}
+      >
+        {time}
+      </div>
 
-      <div className="text-on-surface font-medium text-sm">{client}</div>
+      {/* Client */}
+      <div
+        className={`font-medium text-sm ${cancelled ? "text-on-surface-variant" : "text-on-surface"}`}
+      >
+        {client}
+      </div>
 
+      {/* Service chip */}
       <div>
-        <span className="inline-block px-3 py-1 bg-secondary-container/30 text-secondary text-[10px] font-label uppercase tracking-widest border border-secondary/20">
+        <span
+          className={`inline-block px-3 py-1 text-[10px] font-label uppercase tracking-widest border ${
+            cancelled
+              ? "bg-surface-container-low text-on-surface-variant/60 border-outline-variant/10"
+              : "bg-secondary-container/30 text-secondary border-secondary/20"
+          }`}
+        >
           {service}
         </span>
       </div>
 
-      <div className="flex items-center gap-2 text-on-surface-variant text-sm font-medium">
+      {/* Barber */}
+      <div
+        className={`flex items-center gap-2 text-sm font-medium ${cancelled ? "text-on-surface-variant/60" : "text-on-surface-variant"}`}
+      >
         <div className="w-6 h-6 bg-surface-bright flex items-center justify-center grayscale text-[10px] border border-outline-variant/20 font-label">
           {barberInitials}
         </div>
         {barberName}
       </div>
 
+      {/* Status indicator */}
       <div className="text-right">
         <span
           className={`inline-flex items-center gap-2 text-[10px] font-label uppercase tracking-widest ${config.className}`}
@@ -98,6 +162,85 @@ function AppointmentRow({
 }
 
 export default function DashboardOverviewPage() {
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchAppointments() {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch("/api/v1/appointments");
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch appointments");
+        }
+
+        const data = await response.json();
+
+        if (mounted) {
+          // Note: Categorize based on browser's local time. Edge cases exist around midnight vs UTC.
+          const now = new Date();
+          const todayStart = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+          );
+
+          const upcomingOrToday = data.filter((appt) => {
+            const dateObj = new Date(appt.appointment_datetime);
+            return dateObj >= todayStart;
+          });
+
+          const limited = upcomingOrToday.slice(0, 4);
+
+          const formatted = limited.map((appt) => {
+            const dateObj = new Date(appt.appointment_datetime);
+            const timeStr = new Intl.DateTimeFormat("pt-BR", {
+              timeStyle: "short",
+            }).format(dateObj);
+
+            const servicesStr = appt.services
+              .map((s) => s.service_name)
+              .join(", ");
+
+            const barberName = appt.barber.barber_name;
+            const initials = barberName.substring(0, 2).toUpperCase();
+
+            return {
+              id: appt.appointment_id,
+              time: timeStr,
+              client: appt.client.client_name,
+              service: servicesStr,
+              barberInitials: initials,
+              barberName: barberName,
+              status: appt.status,
+            };
+          });
+
+          setAppointments(formatted);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchAppointments();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <>
       {/* Header */}
@@ -228,41 +371,43 @@ export default function DashboardOverviewPage() {
             </div>
           </div>
 
-          <AppointmentRow
-            time="14:30"
-            client="Julian Rivers"
-            service="Classic Cut"
-            barberInitials="MB"
-            barberName="Marcus B."
-            status="confirmado"
-          />
-
-          <AppointmentRow
-            time="15:00"
-            client="Ethan Hawke"
-            service="Beard Groom"
-            barberInitials="DS"
-            barberName="David S."
-            status="confirmado"
-          />
-
-          <AppointmentRow
-            time="15:45"
-            client="Lukas Thorne"
-            service="Full Service"
-            barberInitials="MB"
-            barberName="Marcus B."
-            status="progresso"
-          />
-
-          <AppointmentRow
-            time="16:15"
-            client="Silas Vane"
-            service="Hot Towel Shave"
-            barberInitials="TR"
-            barberName="Tony R."
-            status="pendente"
-          />
+          {loading ? (
+            <div className="px-8 py-16 text-center">
+              <div className="mx-auto mb-4 flex h-8 w-8 items-center justify-center">
+                <div className="h-8 w-8 border-4 border-primary/20 border-t-primary animate-spin" />
+              </div>
+              <p className="text-on-surface-variant text-sm uppercase tracking-widest font-label">
+                Carregando agendamentos...
+              </p>
+            </div>
+          ) : error ? (
+            <div className="px-8 py-16 text-center">
+              <p className="text-red-500 text-sm font-bold uppercase tracking-widest font-label mb-2">
+                Erro de Conexão
+              </p>
+              <p className="text-on-surface-variant text-sm">
+                Não foi possível carregar os agendamentos no momento.
+              </p>
+            </div>
+          ) : appointments.length === 0 ? (
+            <div className="px-8 py-16 text-center">
+              <p className="text-on-surface-variant text-sm">
+                Nenhum agendamento futuro encontrado.
+              </p>
+            </div>
+          ) : (
+            appointments.map((appt) => (
+              <AppointmentRow
+                key={appt.id}
+                time={appt.time}
+                client={appt.client}
+                service={appt.service}
+                barberInitials={appt.barberInitials}
+                barberName={appt.barberName}
+                status={appt.status}
+              />
+            ))
+          )}
         </div>
       </div>
     </>

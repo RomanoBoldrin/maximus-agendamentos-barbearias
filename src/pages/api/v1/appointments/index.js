@@ -260,8 +260,8 @@ async function postHandler(request, response) {
 
       return response.status(publicErrorObject.statusCode).json({
         name: "ValidationError",
-        message: "An appointment already exists for this barber at this time.",
-        action: "Choose a different date or time.",
+        message: "Um agendamento já existe para este barbeiro neste horário.",
+        action: "Escolha outra data ou horário.",
         status_code: 400,
       });
     }
