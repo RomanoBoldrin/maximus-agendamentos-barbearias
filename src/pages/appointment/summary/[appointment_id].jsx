@@ -46,9 +46,9 @@ function calculateTotalPrice(services) {
 function formatPrice(priceValue) {
   const price = Number(priceValue);
 
-  if (Number.isNaN(price)) return "$0.00";
+  if (Number.isNaN(price)) return "R$0,00";
 
-  return `$${price.toFixed(2)}`;
+  return `R$${price.toFixed(2).replace(".", ",")}`;
 }
 
 function formatBrazilianPhone(value) {
@@ -61,12 +61,6 @@ function formatBrazilianPhone(value) {
   if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
 
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-}
-
-function wait(milliseconds) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, milliseconds);
-  });
 }
 
 function DetailItem({ label, value, highlight = false }) {
@@ -105,11 +99,14 @@ function StepItem({ number, title, description }) {
   );
 }
 
-export default function SummaryPage({ appointment }) {
+export default function SummaryPage({ appointment: initialAppointment }) {
   const router = useRouter();
 
+  const [appointment, setAppointment] = useState(initialAppointment);
   const [dialogType, setDialogType] = useState(null);
   const [loadingMessage, setLoadingMessage] = useState(null);
+
+  const isCancelled = appointment.status === "CANCELADO";
 
   const formattedDate = formatAppointmentDate(appointment.appointment_datetime);
   const formattedTime = formatAppointmentTime(appointment.appointment_datetime);
@@ -141,22 +138,20 @@ export default function SummaryPage({ appointment }) {
     });
 
     try {
-      // TODO: Replace this simulated delay with the real API call.
-      // Example:
-      // await fetch(`/api/v1/appointments/${appointment.appointment_id}`, {
-      //   method: "DELETE",
-      // });
+      const response = await fetch(
+        `/api/v1/appointments/${appointment.appointment_id}`,
+        { method: "DELETE" },
+      );
 
-      await wait(1200);
+      if (!response.ok) {
+        throw new Error("Falha ao cancelar agendamento.");
+      }
 
-      router.push({
-        pathname: "/appointment/emperor-barbershop",
-        query: { toast: "appointment-cancelled" },
-      });
+      const updatedAppointment = await response.json();
+      setAppointment(updatedAppointment);
     } catch (error) {
       console.error(error);
-
-      // TODO: Add user-facing error dialog/toast later.
+    } finally {
       setLoadingMessage(null);
     }
   }
@@ -170,23 +165,22 @@ export default function SummaryPage({ appointment }) {
     setLoadingMessage({
       title: "Preparando reagendamento",
       description:
-        "Estamos preparando a tela de agendamento para que você crie um novo agendamento.",
+        "Estamos cancelando o agendamento atual e preparando a tela de agendamento.",
     });
 
     try {
-      // TODO: Replace this simulated delay with a real cancellation/update API call.
-      // Example:
-      // await fetch(`/api/v1/appointments/${appointment.appointment_id}/reschedule`, {
-      //   method: "POST",
-      // });
+      const response = await fetch(
+        `/api/v1/appointments/${appointment.appointment_id}`,
+        { method: "DELETE" },
+      );
 
-      await wait(900);
+      if (!response.ok) {
+        throw new Error("Falha ao cancelar agendamento.");
+      }
 
       router.push("/appointment/emperor-barbershop");
     } catch (error) {
       console.error(error);
-
-      // TODO: Add user-facing error dialog/toast later.
       setLoadingMessage(null);
     }
   }
@@ -194,35 +188,58 @@ export default function SummaryPage({ appointment }) {
   return (
     <>
       <div className="bg-background text-on-surface min-h-screen">
-        <section className="relative overflow-hidden bg-surface px-8 py-20">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(233,195,73,0.12),transparent_32%),linear-gradient(rgba(22,19,12,0.9),rgba(22,19,12,0.98))]" />
+        {/* ── Hero ── */}
+        <section
+          className={`relative overflow-hidden px-8 py-20 ${
+            isCancelled ? "bg-surface-container-lowest" : "bg-surface"
+          }`}
+        >
+          <div
+            className={`absolute inset-0 ${
+              isCancelled
+                ? "bg-[radial-gradient(circle_at_top_right,rgba(180,50,50,0.08),transparent_32%),linear-gradient(rgba(17,14,8,0.95),rgba(17,14,8,0.99))]"
+                : "bg-[radial-gradient(circle_at_top_right,rgba(233,195,73,0.12),transparent_32%),linear-gradient(rgba(22,19,12,0.9),rgba(22,19,12,0.98))]"
+            }`}
+          />
 
           <div className="relative max-w-7xl mx-auto">
             <div className="max-w-3xl">
               <div className="flex items-center gap-5 mb-8">
-                <div className="w-1 h-14 bg-primary" />
+                <div
+                  className={`w-1 h-14 ${isCancelled ? "bg-[#ffb4ab]" : "bg-primary"}`}
+                />
 
                 <div>
-                  <p className="font-label text-[10px] uppercase tracking-[0.25em] text-primary mb-2">
-                    Agendamento confirmado
+                  <p
+                    className={`font-label text-[10px] uppercase tracking-[0.25em] mb-2 ${
+                      isCancelled ? "text-[#ffb4ab]" : "text-primary"
+                    }`}
+                  >
+                    {isCancelled
+                      ? "Agendamento cancelado"
+                      : "Agendamento confirmado"}
                   </p>
 
                   <h1 className="font-headline text-5xl md:text-7xl font-bold italic tracking-tight">
-                    {appointment.client.client_name}, seu horário está
-                    reservado.
+                    {isCancelled
+                      ? `${appointment.client.client_name}, seu agendamento foi cancelado.`
+                      : `${appointment.client.client_name}, seu horário está reservado.`}
                   </h1>
                 </div>
               </div>
 
               <p className="text-on-surface-variant text-base md:text-lg leading-relaxed max-w-2xl">
-                A Maximus recebeu sua solicitação. Confira os detalhes do seu
-                atendimento.
+                {isCancelled
+                  ? "O agendamento abaixo foi cancelado e não será realizado. Você pode criar um novo agendamento a qualquer momento."
+                  : "A Maximus recebeu sua solicitação. Confira os detalhes do seu atendimento."}
               </p>
 
-              <p className="font-label text-[10px] uppercase tracking-[0.25em] text-primary mb-2">
-                Precisa alterar alguma coisa? Cancele este agendamento a
-                qualquer momento e faça outro em poucos segundos!
-              </p>
+              {!isCancelled && (
+                <p className="font-label text-[10px] uppercase tracking-[0.25em] text-primary mt-4">
+                  Precisa alterar alguma coisa? Cancele este agendamento a
+                  qualquer momento e faça outro em poucos segundos!
+                </p>
+              )}
             </div>
           </div>
         </section>
@@ -230,6 +247,7 @@ export default function SummaryPage({ appointment }) {
         <section className="max-w-7xl mx-auto px-8 py-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
             <div className="lg:col-span-8 space-y-10">
+              {/* ── Summary card ── */}
               <section className="bg-surface-container-high p-8 md:p-10 shadow-[0_20px_50px_rgba(17,14,8,0.4)]">
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8 mb-10">
                   <div>
@@ -238,16 +256,28 @@ export default function SummaryPage({ appointment }) {
                     </p>
 
                     <h2 className="font-headline text-4xl md:text-5xl font-bold italic text-on-surface">
-                      Atendimento confirmado
+                      {isCancelled
+                        ? "Agendamento cancelado"
+                        : "Atendimento confirmado"}
                     </h2>
                   </div>
 
-                  <div className="bg-surface-container-lowest px-5 py-4 self-start">
+                  <div
+                    className={`px-5 py-4 self-start ${
+                      isCancelled
+                        ? "bg-[#2a0f0f]"
+                        : "bg-surface-container-lowest"
+                    }`}
+                  >
                     <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
                       Status
                     </p>
 
-                    <p className="font-bold text-[10px] uppercase tracking-[0.2em] text-on-surface">
+                    <p
+                      className={`font-bold text-[10px] uppercase tracking-[0.2em] ${
+                        isCancelled ? "text-[#ffb4ab]" : "text-on-surface"
+                      }`}
+                    >
                       {appointment.status}
                     </p>
                   </div>
@@ -278,7 +308,11 @@ export default function SummaryPage({ appointment }) {
 
                   <DetailItem label="Total" value={totalPrice} highlight />
 
-                  <DetailItem label="Telefone" value={clientPhone} highlight />
+                  <DetailItem
+                    label="Seu Telefone"
+                    value={clientPhone}
+                    highlight
+                  />
                 </dl>
 
                 <div className="mt-8 bg-surface-container-lowest p-5">
@@ -292,6 +326,7 @@ export default function SummaryPage({ appointment }) {
                 </div>
               </section>
 
+              {/* ── Services ── */}
               <section className="bg-surface-container-low p-8 md:p-10">
                 <div className="flex items-center gap-5 mb-8">
                   <div className="w-1 h-12 bg-primary" />
@@ -305,7 +340,7 @@ export default function SummaryPage({ appointment }) {
                   {appointment.services.map((service) => (
                     <div
                       key={service.service_id}
-                      className="flex items-center justify-between gap-4 rounded bg-surface-container-high p-4"
+                      className="flex items-center justify-between gap-4 bg-surface-container-high p-4"
                     >
                       <div>
                         <p className="font-headline text-lg">
@@ -324,6 +359,7 @@ export default function SummaryPage({ appointment }) {
                 </div>
               </section>
 
+              {/* ── Before you arrive ── */}
               <section className="bg-surface-container-low p-8 md:p-10">
                 <div className="flex items-center gap-5 mb-8">
                   <div className="w-1 h-12 bg-primary" />
@@ -355,6 +391,7 @@ export default function SummaryPage({ appointment }) {
               </section>
             </div>
 
+            {/* ── Sidebar ── */}
             <aside className="lg:col-span-4">
               <div className="sticky top-28 space-y-6">
                 <section className="bg-surface-container-high p-8">
@@ -383,23 +420,42 @@ export default function SummaryPage({ appointment }) {
                   </div>
 
                   <div className="space-y-3">
-                    <button
-                      type="button"
-                      onClick={handleCancelAppointment}
-                      disabled={isLoading}
-                      className="w-full bg-[#2a0f0f] text-[#ffb4ab] py-4 font-bold uppercase tracking-[0.2em] text-xs shadow-[0_14px_30px_rgba(17,14,8,0.35)] hover:bg-[#3a1515] active:translate-y-[1px] active:scale-[0.99] active:shadow-none transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      Cancelar Agendamento
-                    </button>
+                    {isCancelled ? (
+                      <>
+                        <div className="bg-[#2a0f0f] p-4 mb-2">
+                          <p className="text-[#ffb4ab] text-xs font-bold uppercase tracking-[0.2em] text-center">
+                            Agendamento cancelado
+                          </p>
+                        </div>
 
-                    <button
-                      type="button"
-                      onClick={handleRescheduleAppointment}
-                      disabled={isLoading}
-                      className="block w-full bg-surface-container-lowest text-on-surface py-4 text-center font-bold uppercase tracking-[0.2em] text-xs hover:bg-surface-container-highest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      Reagendar
-                    </button>
+                        <Link
+                          href="/appointment/emperor-barbershop"
+                          className="block w-full bg-primary text-on-primary py-4 text-center font-bold uppercase tracking-[0.2em] text-xs shadow-[0_14px_30px_rgba(17,14,8,0.35)] hover:bg-[#f0ca55] active:translate-y-[1px] active:scale-[0.99] active:shadow-none transition-all duration-200"
+                        >
+                          Fazer novo agendamento
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleCancelAppointment}
+                          disabled={isLoading}
+                          className="w-full bg-[#2a0f0f] text-[#ffb4ab] py-4 font-bold uppercase tracking-[0.2em] text-xs shadow-[0_14px_30px_rgba(17,14,8,0.35)] hover:bg-[#3a1515] active:translate-y-[1px] active:scale-[0.99] active:shadow-none transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Cancelar Agendamento
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleRescheduleAppointment}
+                          disabled={isLoading}
+                          className="block w-full bg-surface-container-lowest text-on-surface py-4 text-center font-bold uppercase tracking-[0.2em] text-xs hover:bg-surface-container-highest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Reagendar
+                        </button>
+                      </>
+                    )}
 
                     <Link
                       href="/home"
@@ -440,8 +496,8 @@ export default function SummaryPage({ appointment }) {
       <ConfirmDialog
         isOpen={isCancelDialogOpen}
         title="Cancelar agendamento?"
-        description="Tem certeza que deseja cancelar?"
-        confirmLabel="Sim"
+        description="Tem certeza que deseja cancelar? Esta ação não pode ser desfeita."
+        confirmLabel="Sim, cancelar"
         cancelLabel="Não, voltar"
         variant="danger"
         onConfirm={handleConfirmCancelAppointment}
@@ -451,8 +507,8 @@ export default function SummaryPage({ appointment }) {
       <ConfirmDialog
         isOpen={isRescheduleDialogOpen}
         title="Reagendar atendimento?"
-        description="Tem certeza? Isso cancelará o agendamento atual e levará você de volta para escolher outro horário."
-        confirmLabel="Sim"
+        description="Para alterar este agendamento, o agendamento atual será cancelado e você poderá criar um novo."
+        confirmLabel="Sim, reagendar"
         cancelLabel="Não, voltar"
         onConfirm={handleConfirmRescheduleAppointment}
         onCancel={closeDialog}
