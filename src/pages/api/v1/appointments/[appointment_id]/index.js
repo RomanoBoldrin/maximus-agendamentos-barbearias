@@ -7,77 +7,55 @@ import { prisma as db } from "@/infra/prisma.js";
 const router = createRouter();
 
 router.get(getHandler);
+router.delete(deleteHandler);
 
 export default router.handler(controller.errorHandlers);
 
-async function getHandler(request, response) {
-  const rawAppointmentId = request.query.appointment_id;
-  const appointmentId = Array.isArray(rawAppointmentId)
-    ? rawAppointmentId[0]
-    : rawAppointmentId;
+// ---------------------------------------------------------------------------
+// Shared select block
+// ---------------------------------------------------------------------------
 
-  if (!appointmentId) {
-    throw new ValidationError({
-      message: "Missing required parameter: appointment_id.",
-      action: "Provide an appointment_id in the route.",
-    });
-  }
-
-  if (!isValidUuid(appointmentId)) {
-    throw new ValidationError({
-      message: "appointment_id must be a valid UUID.",
-      action: "Provide a valid appointment_id.",
-    });
-  }
-
-  const appointment = await db.appointment.findUnique({
-    where: {
-      appointmentId,
-    },
+const appointmentSelect = {
+  appointmentId: true,
+  appointmentDatetime: true,
+  appointmentEndDatetime: true,
+  totalDuration: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+  client: {
     select: {
-      appointmentId: true,
-      appointmentDatetime: true,
-      appointmentEndDatetime: true,
-      totalDuration: true,
-      status: true,
-      createdAt: true,
-      updatedAt: true,
-      client: {
+      clientId: true,
+      clientName: true,
+      clientPhone: true,
+    },
+  },
+  barber: {
+    select: {
+      barberId: true,
+      barberName: true,
+    },
+  },
+  appointmentServices: {
+    select: {
+      servicePrice: true,
+      serviceDuration: true,
+      service: {
         select: {
-          clientId: true,
-          clientName: true,
-          clientPhone: true,
-        },
-      },
-      barber: {
-        select: {
-          barberId: true,
-          barberName: true,
-        },
-      },
-      appointmentServices: {
-        select: {
-          servicePrice: true,
-          serviceDuration: true,
-          service: {
-            select: {
-              serviceId: true,
-              serviceName: true,
-            },
-          },
+          serviceId: true,
+          serviceName: true,
         },
       },
     },
-  });
+  },
+};
 
-  if (!appointment) {
-    throw new NotFoundError({
-      message: "Appointment not found.",
-      action: "Verify if the appointment_id is correct.",
-    });
-  }
+// ---------------------------------------------------------------------------
+// Response mapper
+// ---------------------------------------------------------------------------
 
-  return response.status(200).json({
+function mapAppointmentResponse(appointment) {
+  return {
     appointment_id: appointment.appointmentId,
     appointment_datetime: appointment.appointmentDatetime.toISOString(),
     appointment_end_datetime: appointment.appointmentEndDatetime.toISOString(),
@@ -100,7 +78,85 @@ async function getHandler(request, response) {
     })),
     created_at: appointment.createdAt.toISOString(),
     updated_at: appointment.updatedAt.toISOString(),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+
+async function getHandler(request, response) {
+  const appointmentId = extractAppointmentId(request);
+
+  const appointment = await db.appointment.findUnique({
+    where: { appointmentId },
+    select: appointmentSelect,
   });
+
+  if (!appointment) {
+    throw new NotFoundError({
+      message: "Appointment not found.",
+      action: "Verify if the appointment_id is correct.",
+    });
+  }
+
+  return response.status(200).json(mapAppointmentResponse(appointment));
+}
+
+async function deleteHandler(request, response) {
+  const appointmentId = extractAppointmentId(request);
+
+  const appointment = await db.appointment.findUnique({
+    where: { appointmentId },
+    select: appointmentSelect,
+  });
+
+  if (!appointment) {
+    throw new NotFoundError({
+      message: "Appointment not found.",
+      action: "Verify if the appointment_id is correct.",
+    });
+  }
+
+  // Idempotent: already cancelled — return current data without writing
+  if (appointment.status === "CANCELADO") {
+    return response.status(200).json(mapAppointmentResponse(appointment));
+  }
+
+  const updatedAppointment = await db.appointment.update({
+    where: { appointmentId },
+    data: { status: "CANCELADO" },
+    select: appointmentSelect,
+  });
+
+  return response.status(200).json(mapAppointmentResponse(updatedAppointment));
+}
+
+// ---------------------------------------------------------------------------
+// Utilities
+// ---------------------------------------------------------------------------
+
+function extractAppointmentId(request) {
+  const rawAppointmentId = request.query.appointment_id;
+  const appointmentId = Array.isArray(rawAppointmentId)
+    ? rawAppointmentId[0]
+    : rawAppointmentId;
+
+  if (!appointmentId) {
+    throw new ValidationError({
+      message: "Missing required parameter: appointment_id.",
+      action: "Provide an appointment_id in the route.",
+    });
+  }
+
+  if (!isValidUuid(appointmentId)) {
+    throw new ValidationError({
+      message: "appointment_id must be a valid UUID.",
+      action: "Provide a valid appointment_id.",
+    });
+  }
+
+  return appointmentId;
 }
 
 function isValidUuid(value) {

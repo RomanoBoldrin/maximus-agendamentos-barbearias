@@ -1,9 +1,35 @@
+import { useState } from "react";
+
 import Link from "next/link";
+import { useRouter } from "next/router";
 import MainLayout from "../components/layout/MainLayout";
 import InteractiveCalendar from "../components/ui/InteractiveCalendar";
 import Image from "next/image";
 
 export default function Home() {
+  const router = useRouter();
+  const [checkingAuth, setCheckingAuth] = useState(false);
+
+  async function handleLoginClick() {
+    setCheckingAuth(true);
+    try {
+      const res = await fetch("/api/v1/user");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.access_level === "admin") {
+          router.push("/dashboard/overview");
+        } else {
+          router.push("/dashboard/appointments");
+        }
+      } else {
+        router.push("/login");
+      }
+    } catch {
+      router.push("/login");
+    } finally {
+      setCheckingAuth(false);
+    }
+  }
   return (
     <>
       <section className="relative h-[614px] flex items-center overflow-hidden">
@@ -35,16 +61,18 @@ export default function Home() {
             </h2>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link href={"/register"}>
+              <Link href={"appointment/emperor-barbershop"}>
                 <button className="bg-primary text-on-primary px-8 py-4 text-xs font-bold uppercase tracking-widest hover:shadow-[4px_4px_0px_#e9e1d6] transition-all">
-                  COMEÇAR AGORA
+                  Fazer um agendamento
                 </button>
               </Link>
-              <Link href={"/dashboard/overview"}>
-                <button className="border border-outline-variant text-on-surface px-8 py-4 text-xs font-bold uppercase tracking-widest hover:bg-surface-container-high transition-all">
-                  Ver demo
-                </button>
-              </Link>
+              <button
+                onClick={handleLoginClick}
+                disabled={checkingAuth}
+                className="border border-outline-variant text-on-surface px-8 py-4 text-xs font-bold uppercase tracking-widest hover:bg-surface-container-high transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {checkingAuth ? "Aguarde..." : "Fazer Login"}
+              </button>
             </div>
           </div>
         </div>

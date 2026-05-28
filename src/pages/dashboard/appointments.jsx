@@ -1,7 +1,46 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import Link from "next/link";
+import pageAuthorization from "@/infra/pageAuthorization";
+
+export async function getServerSideProps(context) {
+  const result = await pageAuthorization.requireAdminOrBarberPage(context);
+  if (result.notFound) return { notFound: true };
+  return { props: {} };
+}
+
+// ---------------------------------------------------------------------------
+// Status helpers
+// ---------------------------------------------------------------------------
+
+function getAppointmentStatusLabel(status) {
+  const labels = {
+    AGENDADO: "Agendado",
+    CONCLUIDO: "Concluído",
+    CANCELADO: "Cancelado",
+    FALTOU: "Faltou",
+  };
+  return labels[status] || status;
+}
+
+function getAppointmentStatusBadgeClasses(status) {
+  const map = {
+    AGENDADO: "text-primary bg-primary/10",
+    CONCLUIDO: "text-on-surface bg-surface-container-highest",
+    CANCELADO: "text-[#ffb4ab] bg-[#2a0f0f]",
+    FALTOU: "text-on-surface-variant bg-surface-container-highest",
+  };
+  return map[status] || "text-on-surface-variant bg-surface-container-highest";
+}
+
+function isCancelledAppointment(status) {
+  return status === "CANCELADO";
+}
+
+// ---------------------------------------------------------------------------
+// Components
+// ---------------------------------------------------------------------------
 
 function FilterTab({ label, active, onClick }) {
   return (
@@ -19,29 +58,79 @@ function FilterTab({ label, active, onClick }) {
   );
 }
 
-function AppointmentRow({ date, time, barber, client, service, price }) {
+function AppointmentRow({
+  date,
+  time,
+  barber,
+  client,
+  service,
+  price,
+  status,
+}) {
+  const cancelled = isCancelledAppointment(status);
+
   return (
-    <div className="grid grid-cols-[1.5fr_1fr_1.5fr_1.5fr_auto] gap-4 px-8 py-6 items-center border-b border-outline-variant/10 hover:bg-surface-container-high/50 transition-colors cursor-pointer group">
+    <div
+      className={`grid grid-cols-[1.5fr_1fr_1.5fr_1.5fr_1fr_auto] gap-4 px-8 py-6 items-center border-b border-outline-variant/10 transition-colors cursor-pointer group ${
+        cancelled
+          ? "bg-surface-container-lowest hover:bg-surface-container-low/60"
+          : "hover:bg-surface-container-high/50"
+      }`}
+    >
+      {/* Date & Time */}
       <div className="flex flex-col">
-        <span className="text-on-surface font-medium">{date}</span>
-        <span className="text-primary text-xs font-label mt-1 uppercase tracking-wider">
+        <span
+          className={`font-medium ${cancelled ? "text-on-surface-variant" : "text-on-surface"}`}
+        >
+          {date}
+        </span>
+        <span
+          className={`text-xs font-label mt-1 uppercase tracking-wider ${cancelled ? "text-on-surface-variant/60" : "text-primary"}`}
+        >
           {time}
         </span>
       </div>
 
-      <div className="text-on-surface-variant font-medium text-sm">
+      {/* Barber */}
+      <div
+        className={`font-medium text-sm ${cancelled ? "text-on-surface-variant/60" : "text-on-surface-variant"}`}
+      >
         {barber}
       </div>
 
-      <div className="text-on-surface font-medium text-sm">{client}</div>
+      {/* Client */}
+      <div
+        className={`font-medium text-sm ${cancelled ? "text-on-surface-variant" : "text-on-surface"}`}
+      >
+        {client}
+      </div>
 
+      {/* Service chip */}
       <div>
-        <span className="inline-block px-3 py-1 bg-secondary-container/30 text-secondary text-[10px] font-label uppercase tracking-widest border border-secondary/20">
+        <span
+          className={`inline-block px-3 py-1 text-[10px] font-label uppercase tracking-widest border ${
+            cancelled
+              ? "bg-surface-container-low text-on-surface-variant/60 border-outline-variant/10"
+              : "bg-secondary-container/30 text-secondary border-secondary/20"
+          }`}
+        >
           {service}
         </span>
       </div>
 
-      <div className="text-right text-on-surface font-headline font-bold text-xl">
+      {/* Status badge */}
+      <div>
+        <span
+          className={`inline-block px-3 py-1 text-[10px] font-label uppercase tracking-widest ${getAppointmentStatusBadgeClasses(status)}`}
+        >
+          {getAppointmentStatusLabel(status)}
+        </span>
+      </div>
+
+      {/* Price */}
+      <div
+        className={`text-right font-headline font-bold text-xl ${cancelled ? "text-on-surface-variant/70" : "text-on-surface"}`}
+      >
         {price}
       </div>
     </div>
@@ -50,72 +139,102 @@ function AppointmentRow({ date, time, barber, client, service, price }) {
 
 export default function DashboardAppointmentsPage() {
   const [activeTab, setActiveTab] = useState("today");
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const appointments = useMemo(() => {
-    // mock data (later this will come from your API)
-    return [
-      {
-        date: "14 Nov, 2023",
-        time: "09:00 AM",
-        barber: "Elias Weaver",
-        client: "Julian Thorne",
-        service: "Corte Executivo",
-        price: "$40.00",
-        category: "today",
-      },
-      {
-        date: "14 Nov, 2023",
-        time: "10:30 AM",
-        barber: "Silas Vance",
-        client: "Marcus Sterling",
-        service: "Barba Completa",
-        price: "$20.00",
-        category: "today",
-      },
-      {
-        date: "14 Nov, 2023",
-        time: "11:15 AM",
-        barber: "Elias Weaver",
-        client: "Arthur Pendelton",
-        service: "Cabelo & Barba",
-        price: "$55.00",
-        category: "today",
-      },
-      {
-        date: "14 Nov, 2023",
-        time: "01:00 PM",
-        barber: "Caleb Reed",
-        client: "Dominic Cross",
-        service: "Corte Clássico",
-        price: "$45.00",
-        category: "upcoming",
-      },
-      {
-        date: "14 Nov, 2023",
-        time: "02:30 PM",
-        barber: "Silas Vance",
-        client: "Victor Hayes",
-        service: "Barba Toalha Quente",
-        price: "$55.00",
-        category: "upcoming",
-      },
-    ];
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchAppointments() {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch("/api/v1/appointments");
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch appointments");
+        }
+
+        const data = await response.json();
+
+        if (mounted) {
+          const formatted = data.map((appt) => {
+            const dateObj = new Date(appt.appointment_datetime);
+
+            const dateStr = new Intl.DateTimeFormat("pt-BR", {
+              dateStyle: "short",
+            }).format(dateObj);
+            const timeStr = new Intl.DateTimeFormat("pt-BR", {
+              timeStyle: "short",
+            }).format(dateObj);
+
+            const totalPrice = appt.services.reduce(
+              (acc, curr) => acc + parseFloat(curr.service_price),
+              0,
+            );
+            const priceStr = new Intl.NumberFormat("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            }).format(totalPrice);
+
+            const servicesStr = appt.services
+              .map((s) => s.service_name)
+              .join(", ");
+
+            // Note: Categorize based on browser's local time. Edge cases exist around midnight vs UTC.
+            const now = new Date();
+            const todayStart = new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate(),
+            );
+            const todayEnd = new Date(
+              todayStart.getTime() + 24 * 60 * 60 * 1000,
+            );
+
+            let category = "today";
+            if (dateObj < todayStart) {
+              category = "past";
+            } else if (dateObj >= todayEnd) {
+              category = "upcoming";
+            }
+
+            return {
+              id: appt.appointment_id,
+              date: dateStr,
+              time: timeStr,
+              barber: appt.barber.barber_name,
+              client: appt.client.client_name,
+              service: servicesStr,
+              price: priceStr,
+              status: appt.status,
+              category: category,
+            };
+          });
+
+          setAppointments(formatted);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchAppointments();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const filteredAppointments = useMemo(() => {
-    if (activeTab === "today") {
-      return appointments.filter((a) => a.category === "today");
-    }
-
-    if (activeTab === "upcoming") {
-      return appointments.filter((a) => a.category === "upcoming");
-    }
-
-    if (activeTab === "past") {
-      return appointments.filter((a) => a.category === "past");
-    }
-
-    return appointments;
+    return appointments.filter((a) => a.category === activeTab);
   }, [activeTab, appointments]);
 
   return (
@@ -169,9 +288,9 @@ export default function DashboardAppointmentsPage() {
       {/* Table */}
       <div className="bg-surface-container-low shadow-[0_40px_100px_rgba(0,0,0,0.6)] overflow-hidden">
         {/* Table Head */}
-        <div className="grid grid-cols-[1.5fr_1fr_1.5fr_1.5fr_auto] gap-4 px-8 py-5 bg-surface-container-highest/50 border-b border-outline-variant/20">
+        <div className="grid grid-cols-[1.5fr_1fr_1.5fr_1.5fr_1fr_auto] gap-4 px-8 py-5 bg-surface-container-highest/50 border-b border-outline-variant/20">
           <div className="text-xs font-label uppercase tracking-widest text-primary font-bold">
-            Data & Horário
+            Data &amp; Horário
           </div>
           <div className="text-xs font-label uppercase tracking-widest text-primary font-bold">
             Barbeiro
@@ -182,28 +301,50 @@ export default function DashboardAppointmentsPage() {
           <div className="text-xs font-label uppercase tracking-widest text-primary font-bold">
             Serviço
           </div>
+          <div className="text-xs font-label uppercase tracking-widest text-primary font-bold">
+            Status
+          </div>
           <div className="text-xs font-label uppercase tracking-widest text-primary font-bold text-right">
             Preço
           </div>
         </div>
 
         {/* Table Rows */}
-        {filteredAppointments.length === 0 ? (
+        {loading ? (
+          <div className="px-8 py-16 text-center">
+            <div className="mx-auto mb-4 flex h-8 w-8 items-center justify-center">
+              <div className="h-8 w-8 border-4 border-primary/20 border-t-primary animate-spin" />
+            </div>
+            <p className="text-on-surface-variant text-sm uppercase tracking-widest font-label">
+              Carregando agendamentos...
+            </p>
+          </div>
+        ) : error ? (
+          <div className="px-8 py-16 text-center">
+            <p className="text-red-500 text-sm font-bold uppercase tracking-widest font-label mb-2">
+              Erro de Conexão
+            </p>
+            <p className="text-on-surface-variant text-sm">
+              Não foi possível carregar os agendamentos no momento.
+            </p>
+          </div>
+        ) : filteredAppointments.length === 0 ? (
           <div className="px-8 py-16 text-center">
             <p className="text-on-surface-variant text-sm">
               Nenhum agendamento encontrado para este filtro.
             </p>
           </div>
         ) : (
-          filteredAppointments.map((appt, index) => (
+          filteredAppointments.map((appt) => (
             <AppointmentRow
-              key={`${appt.client}-${appt.time}-${index}`}
+              key={appt.id}
               date={appt.date}
               time={appt.time}
               barber={appt.barber}
               client={appt.client}
               service={appt.service}
               price={appt.price}
+              status={appt.status}
             />
           ))
         )}
