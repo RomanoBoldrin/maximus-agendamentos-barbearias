@@ -23,7 +23,7 @@ export default function DashboardTopbar({
         </button>
 
         <h1 className="text-xl font-bold font-serif text-[#e9c349]">
-          Maximus Admin
+          Emperor Admin
         </h1>
       </div>
 

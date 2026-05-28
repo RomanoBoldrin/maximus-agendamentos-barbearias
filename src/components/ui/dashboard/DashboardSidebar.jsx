@@ -38,6 +38,7 @@ export default function DashboardSidebar({ collapsed = false }) {
   const router = useRouter();
 
   const [isSettingsLoading, setIsSettingsLoading] = useState(false);
+  const [isLogoutLoading, setIsLogoutLoading] = useState(false);
 
   async function handleSettingsClick() {
     setIsSettingsLoading(true);
@@ -52,6 +53,19 @@ export default function DashboardSidebar({ collapsed = false }) {
     }
   }
 
+  async function handleLogoutClick() {
+    setIsLogoutLoading(true);
+
+    try {
+      await fetch("/api/v1/sessions", { method: "DELETE" });
+      await wait(900);
+    } catch {
+      // Network error — session may already be invalid; proceed to login.
+    } finally {
+      router.push("/login");
+    }
+  }
+
   return (
     <>
       <aside
@@ -61,14 +75,14 @@ export default function DashboardSidebar({ collapsed = false }) {
       >
         <div className="px-6 py-8 overflow-hidden">
           <div className="flex flex-col">
-            <Link href="/home" title="Maximus">
+            <Link href="/home" title="Emperor">
               <span
                 className={`block text-2xl font-bold font-serif text-[#e9c349] uppercase leading-none whitespace-nowrap transition-all duration-300 ${
                   collapsed ? "max-w-[1ch] overflow-hidden" : "max-w-full"
                 }`}
-                aria-label="Maximus"
+                aria-label="Emperor"
               >
-                Maximus
+                Emperor
               </span>
             </Link>
 
@@ -136,6 +150,23 @@ export default function DashboardSidebar({ collapsed = false }) {
                 </svg>
               }
             />
+
+            <NavItem
+              href="/dashboard/services"
+              label="Serviços"
+              collapsed={collapsed}
+              active={router.pathname.startsWith("/dashboard/services")}
+              icon={
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M21.41 11.58l-9-9A2 2 0 0 0 11 2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 .59 1.42l9 9A2 2 0 0 0 13 22a2 2 0 0 0 1.41-.59l7-7A2 2 0 0 0 22 13a2 2 0 0 0-.59-1.42zM6.5 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" />
+                </svg>
+              }
+            />
           </div>
         </nav>
 
@@ -170,7 +201,9 @@ export default function DashboardSidebar({ collapsed = false }) {
 
             <button
               type="button"
-              className="w-full text-left text-[#e9e1d6]/60 flex items-center gap-3 px-4 py-2 hover:text-[#e9c349] transition-colors"
+              onClick={handleLogoutClick}
+              disabled={isLogoutLoading}
+              className="w-full text-left text-[#e9e1d6]/60 flex items-center gap-3 px-4 py-2 hover:text-[#e9c349] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               title={collapsed ? "Sair" : undefined}
             >
               <span className="text-lg shrink-0">
@@ -200,6 +233,12 @@ export default function DashboardSidebar({ collapsed = false }) {
         isOpen={isSettingsLoading}
         title="Abrindo configurações"
         description="Estamos preparando esta área do painel. Isso pode levar alguns instantes."
+      />
+
+      <LoadingDialog
+        isOpen={isLogoutLoading}
+        title="Saindo..."
+        description="Encerrando sua sessão com segurança."
       />
     </>
   );
