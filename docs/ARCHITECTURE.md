@@ -185,14 +185,18 @@ The appointment record in the database is the single source of truth for confirm
 
 - `/appointment/summary/[appointment_id]` is a dynamic SSR route. `/appointment/summary` is not a valid fixed summary page for a created appointment.
 - Invalid or nonexistent appointment IDs should cause a real 404 (server-side `notFound: true`).
+- Cancelled appointments remain valid summary records and should still render on the summary route.
 - Do not use cookies or query parameters as the source of appointment ownership — the URL `appointment_id` + API/db response is authoritative.
 
 ---
 
 ## Appointment edit / cancel (MVP decision)
 
-- Cancellation is required and implemented as a soft-cancel by setting appointment `status` to `CANCELADO`.
-- Cancelled appointments remain visible for auditing and user confirmation.
+- `DELETE /api/v1/appointments/[appointment_id]` cancels the appointment by setting `Appointment.status = CANCELADO`.
+- The appointment row is not physically deleted from the database.
+- Cancelled appointments remain visible in `/appointment/summary/[appointment_id]` and in dashboard appointment lists.
+- Dashboard UI should visually distinguish cancelled appointments, for example by showing status `Cancelado` and muting/graying out the row/card.
+- Cancelled appointments should not block the same barber/date/time slot from being booked again.
 - Full PATCH-based appointment editing is not implemented in the current MVP.
 - For the MVP, the UI "edit" flow is implemented as cancel + recreate: the client cancels the current appointment (soft-cancel) and is guided to create a new appointment. This is a deliberate MVP decision; PATCH-based editing may be implemented in future iterations when product needs evolve.
 
@@ -208,6 +212,7 @@ Notes:
 
 - Dashboard routes must be protected by session-based authentication and role checks.
 - Admins see all appointments.
+- Cancelled appointments remain visible in dashboard lists and should be clearly marked with status `Cancelado` and muted/grayed styling.
 - Barber users (when linked) should only see appointments where `User.linkedBarberId === Appointment.barberId`.
 
 ---
@@ -220,6 +225,18 @@ Notes:
 - Format decimal `price` values to two decimal places in JSON responses.
 - Public errors should be instances of the classes in `src/infra/errors.js` and include `action` guidance.
 - Do not expose `passwordHash` or raw session tokens in JSON.
+
+---
+
+## Deletion conventions
+
+- Prefer soft deletion for business/domain records that may be referenced by historical data.
+- Soft deletion means changing a state field such as `status` or `isActive`, instead of physically removing the row.
+- Hard deletion should only be used for temporary/lifecycle records or when explicitly approved.
+- Appointments use soft cancellation through `status = CANCELADO`; cancelled appointments remain visible and do not block rebooking.
+- Services should be soft-deleted by setting `isActive = false`.
+- Barbers should be soft-deleted by setting `isActive = false`.
+- Sessions may be expired or removed as lifecycle/authentication records.
 
 ---
 
@@ -239,6 +256,7 @@ Note: Booking-specific helpers/components were moved under `src/features/appoint
 - Do NOT implement multi-tenancy or add a `Barbershop` table while the project is scoped to the single-barbershop MVP. Multi-tenancy is a future improvement.
 - Do NOT re-enable or treat `/register` as part of the active admin onboarding flow. The `/register` page exists in the repo but is not part of the MVP; it should redirect users to `/featureUnavailable` (and then to `/login`) until an explicit product decision reintroduces public registration.
 - Do NOT depend on cookies or query parameters to assert appointment ownership for the summary page — rely on `appointment_id` and the API/db record.
+- Do NOT treat appointment cancellation as hard deletion, or assume cancelled appointments disappear from summary/dashboard views.
 - Do NOT allow public signup to create `admin` or `barber` accounts. Barber `User` accounts must be created by an `admin` and linked to a `Barber` profile.
 - Do NOT expose sensitive fields (password hashes, raw session tokens) via API responses.
 - Avoid major stack rewrites (TypeScript migration, App Router adoption, or heavy new packages) during MVP work unless explicitly approved.
