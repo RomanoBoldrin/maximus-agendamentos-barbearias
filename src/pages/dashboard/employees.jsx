@@ -810,9 +810,7 @@ export default function DashboardEmployeesPage() {
             Erro ao excluir
           </p>
 
-          <p className="text-sm text-red-300 leading-relaxed">
-            {deleteError}
-          </p>
+          <p className="text-sm text-red-300 leading-relaxed">{deleteError}</p>
         </div>
       )}
 
