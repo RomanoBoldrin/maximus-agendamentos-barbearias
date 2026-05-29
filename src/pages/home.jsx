@@ -71,7 +71,7 @@ export default function Home() {
                 disabled={checkingAuth}
                 className="border border-outline-variant text-on-surface px-8 py-4 text-xs font-bold uppercase tracking-widest hover:bg-surface-container-high transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {checkingAuth ? "Aguarde..." : "Fazer Login"}
+                {checkingAuth ? "Aguarde..." : "Acessar Dashboard"}
               </button>
             </div>
           </div>
