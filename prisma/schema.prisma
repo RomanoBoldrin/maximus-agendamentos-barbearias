@@ -122,9 +122,20 @@ model Appointment {
 
   appointmentServices AppointmentService[]
 
-  @@unique([barberId, appointmentDatetime], name: "uqBarberDatetime")
+  // PostgreSQL-only partial unique index managed manually in migrations:
+  //
+  // CREATE UNIQUE INDEX "appointments_barber_datetime_active_unique"
+  // ON "appointments" ("barber_id", "appointment_datetime")
+  // WHERE "status" = 'AGENDADO';
+  //
+  // Reason:
+  // Prisma does not model partial unique indexes directly in schema.prisma.
+  // This index allows cancelled/concluded/no-show appointments to remain as history
+  // without blocking the same barber/time slot from being booked again.
+
   @@index([clientId], name: "idxAppointmentsClient")
   @@index([appointmentDatetime], name: "idxAppointmentsDatetime")
+  @@index([barberId, appointmentDatetime], name: "idxAppointmentsBarberDatetime")
   @@index([barberId, status, appointmentDatetime], name: "idxAppointmentsBarberStatusDatetime")
   @@index([barberId, status, appointmentDatetime, appointmentEndDatetime], name: "idxAppointmentsBarberStatusRange")
   @@map("appointments")
