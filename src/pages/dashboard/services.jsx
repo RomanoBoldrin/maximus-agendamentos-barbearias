@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import LoadingDialog from "@/components/ui/LoadingDialog";
 import pageAuthorization from "@/infra/pageAuthorization";
@@ -385,6 +386,11 @@ export default function DashboardServicesPage() {
   const [fetchError, setFetchError] = useState(null);
   const [selectedServiceToEdit, setSelectedServiceToEdit] = useState(null);
 
+  // Delete flow state
+  const [serviceToDelete, setServiceToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
   useEffect(() => {
     async function fetchServices() {
       setLoadingFetch(true);
@@ -425,10 +431,39 @@ export default function DashboardServicesPage() {
     // - Update the local services list
   }
 
-  function handleServiceDeleted(serviceId) {
-    setServices((prev) => {
-      return prev.filter((service) => service.service_id !== serviceId);
-    });
+  function handleServiceDeleteRequest(serviceId) {
+    setDeleteError(null);
+    setServiceToDelete(serviceId);
+  }
+
+  function handleDeleteCancel() {
+    setServiceToDelete(null);
+  }
+
+  async function handleDeleteConfirm() {
+    const serviceId = serviceToDelete;
+    setServiceToDelete(null);
+    setDeleting(true);
+    setDeleteError(null);
+
+    try {
+      const res = await fetch(`/api/v1/services/${serviceId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Erro ao excluir serviço.");
+      }
+
+      setServices((prev) =>
+        prev.filter((service) => service.service_id !== serviceId),
+      );
+    } catch (err) {
+      setDeleteError(err.message);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -555,13 +590,46 @@ export default function DashboardServicesPage() {
                   key={service.service_id}
                   service={service}
                   onEdit={handleServiceEdit}
-                  onDelete={handleServiceDeleted}
+                  onDelete={handleServiceDeleteRequest}
                 />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Delete error banner */}
+      {deleteError && (
+        <div
+          role="alert"
+          className="mx-8 mb-12 bg-red-950/40 border-l-4 border-red-500/60 px-6 py-5"
+        >
+          <p className="text-xs font-label uppercase tracking-widest text-red-400 mb-1">
+            Erro ao excluir
+          </p>
+
+          <p className="text-sm text-red-300 leading-relaxed">
+            {deleteError}
+          </p>
+        </div>
+      )}
+
+      <ConfirmDialog
+        isOpen={serviceToDelete !== null}
+        title="Excluir serviço?"
+        description="Este serviço será removido da lista de serviços ativos. Agendamentos antigos que usaram este serviço não serão apagados."
+        confirmLabel="Sim, excluir serviço"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
+
+      <LoadingDialog
+        isOpen={deleting}
+        title="Excluindo serviço"
+        description="Estamos removendo o serviço da lista de serviços ativos. Isso levará apenas um momento."
+      />
     </>
   );
 }
