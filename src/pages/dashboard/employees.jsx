@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import LoadingDialog from "@/components/ui/LoadingDialog";
 import {
@@ -592,6 +593,11 @@ export default function DashboardEmployeesPage() {
   const [fetchError, setFetchError] = useState(null);
   const [selectedBarberToEdit, setSelectedBarberToEdit] = useState(null);
 
+  // Delete flow state
+  const [barberToDelete, setBarberToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
   useEffect(() => {
     async function fetchBarbers() {
       setLoadingFetch(true);
@@ -632,10 +638,39 @@ export default function DashboardEmployeesPage() {
     // - Update the local barbers list
   }
 
-  function handleBarberDeleted(barberId) {
-    setBarbers((prev) => {
-      return prev.filter((barber) => barber.barber_id !== barberId);
-    });
+  function handleBarberDeleteRequest(barberId) {
+    setDeleteError(null);
+    setBarberToDelete(barberId);
+  }
+
+  function handleDeleteCancel() {
+    setBarberToDelete(null);
+  }
+
+  async function handleDeleteConfirm() {
+    const barberId = barberToDelete;
+    setBarberToDelete(null);
+    setDeleting(true);
+    setDeleteError(null);
+
+    try {
+      const res = await fetch(`/api/v1/barbers/${barberId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Erro ao excluir barbeiro.");
+      }
+
+      setBarbers((prev) =>
+        prev.filter((barber) => barber.barber_id !== barberId),
+      );
+    } catch (err) {
+      setDeleteError(err.message);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -758,13 +793,43 @@ export default function DashboardEmployeesPage() {
                   key={barber.barber_id}
                   barber={barber}
                   onEdit={handleBarberEdit}
-                  onDelete={handleBarberDeleted}
+                  onDelete={handleBarberDeleteRequest}
                 />
               ))}
             </div>
           )}
         </div>
       </div>
+      {/* Delete error banner */}
+      {deleteError && (
+        <div
+          role="alert"
+          className="mx-8 mb-12 bg-red-950/40 border-l-4 border-red-500/60 px-6 py-5"
+        >
+          <p className="text-xs font-label uppercase tracking-widest text-red-400 mb-1">
+            Erro ao excluir
+          </p>
+
+          <p className="text-sm text-red-300 leading-relaxed">{deleteError}</p>
+        </div>
+      )}
+
+      <ConfirmDialog
+        isOpen={barberToDelete !== null}
+        title="Excluir barbeiro?"
+        description="Este barbeiro será removido da lista de profissionais ativos. Agendamentos futuros vinculados a ele serão cancelados."
+        confirmLabel="Sim, excluir barbeiro"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
+
+      <LoadingDialog
+        isOpen={deleting}
+        title="Excluindo barbeiro"
+        description="Estamos removendo o barbeiro e cancelando agendamentos futuros. Isso levará apenas um momento."
+      />
     </>
   );
 }
