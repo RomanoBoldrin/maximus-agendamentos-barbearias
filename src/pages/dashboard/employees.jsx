@@ -22,64 +22,126 @@ function formatTime(time) {
   return time.replace(":", "h");
 }
 
+// ─── Icons ───────────────────────────────────────────────────────────────────
+
+function EditIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.04c.39-.39.39-1.02 0-1.41L18.2 3.29a.9959.9959 0 0 0-1.41 0l-1.96 1.96L18.58 9l2.13-1.79z" />
+    </svg>
+  );
+}
+
 // ─── BarberCard ──────────────────────────────────────────────────────────────
 
-function BarberCard({ barber }) {
+function BarberCard({ barber, onEdit, onDelete }) {
   const hasWorkHours = barber.work_start && barber.work_end;
   const hasLunchHours = barber.lunch_start && barber.lunch_end;
   const hasPhone = !!barber.phone_number;
 
+  function handleEditClick(event) {
+    event.stopPropagation();
+
+    onEdit(barber);
+  }
+
+  function handleDeleteClick(event) {
+    event.stopPropagation();
+
+    onDelete(barber.barber_id);
+  }
+
   return (
-    <div className="bg-surface-container-high hover:bg-surface-container-highest transition-colors p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
-      {/* Name row with Razor's Edge accent */}
-      <div className="flex items-start gap-3 mb-4">
-        <div className="w-1 bg-primary shrink-0 self-stretch" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <h4 className="font-headline text-xl font-bold text-on-surface leading-snug">
-              {barber.barber_name}
-            </h4>
-            {barber.is_active && (
-              <span className="inline-block px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-label uppercase tracking-widest">
-                Ativo
-              </span>
-            )}
+    <div className="bg-surface-container-high hover:bg-surface-container-highest transition-colors p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)] group">
+      <div className="grid grid-cols-[1fr_auto] gap-6">
+        <div>
+          {/* Name row with Razor's Edge accent */}
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-1 bg-primary shrink-0 self-stretch" />
+
+            <div className="flex-1 min-w-0">
+              <h4 className="font-headline text-xl font-bold text-on-surface leading-snug">
+                {barber.barber_name}
+              </h4>
+
+              {hasPhone && (
+                <p className="text-sm text-on-surface-variant mt-1">
+                  {formatPhone(barber.phone_number)}
+                </p>
+              )}
+            </div>
           </div>
 
-          {hasPhone && (
-            <p className="text-sm text-on-surface-variant mt-1">
-              {formatPhone(barber.phone_number)}
-            </p>
+          {/* Hours */}
+          {(hasWorkHours || hasLunchHours) && (
+            <div className="pl-4 space-y-1.5">
+              {hasWorkHours && (
+                <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+                  <span className="text-[10px] font-label uppercase tracking-widest text-primary w-20 shrink-0">
+                    Expediente
+                  </span>
+                  <span>
+                    {formatTime(barber.work_start)} –{" "}
+                    {formatTime(barber.work_end)}
+                  </span>
+                </div>
+              )}
+
+              {hasLunchHours && (
+                <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+                  <span className="text-[10px] font-label uppercase tracking-widest text-primary w-20 shrink-0">
+                    Almoço
+                  </span>
+                  <span>
+                    {formatTime(barber.lunch_start)} –{" "}
+                    {formatTime(barber.lunch_end)}
+                  </span>
+                </div>
+              )}
+            </div>
           )}
+        </div>
+
+        <div className="flex flex-col items-end justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleEditClick}
+              aria-label={`Editar barbeiro ${barber.barber_name}`}
+              title="Editar barbeiro"
+              className="flex h-7 w-7 items-center justify-center bg-surface-container-lowest text-primary font-bold text-xs uppercase tracking-widest hover:bg-primary hover:text-on-primary active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              <EditIcon />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDeleteClick}
+              aria-label={`Excluir barbeiro ${barber.barber_name}`}
+              title="Excluir barbeiro"
+              className="flex h-7 w-7 items-center justify-center bg-[#2a0f0f] text-[#ffb4ab] font-bold text-xs uppercase tracking-widest hover:bg-[#3a1515] hover:text-[#ffd6d1] active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#ffb4ab]/40"
+            >
+              ×
+            </button>
+          </div>
+
+          <span
+            className={`inline-block px-3 py-1 text-[10px] font-label uppercase tracking-widest ${
+              barber.is_active
+                ? "bg-primary/10 text-primary"
+                : "bg-surface-container-lowest text-on-surface-variant"
+            }`}
+          >
+            {barber.is_active ? "Ativo" : "Inativo"}
+          </span>
         </div>
       </div>
-
-      {/* Hours */}
-      {(hasWorkHours || hasLunchHours) && (
-        <div className="pl-4 space-y-1.5">
-          {hasWorkHours && (
-            <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-              <span className="text-[10px] font-label uppercase tracking-widest text-primary w-20 shrink-0">
-                Expediente
-              </span>
-              <span>
-                {formatTime(barber.work_start)} – {formatTime(barber.work_end)}
-              </span>
-            </div>
-          )}
-          {hasLunchHours && (
-            <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-              <span className="text-[10px] font-label uppercase tracking-widest text-primary w-20 shrink-0">
-                Almoço
-              </span>
-              <span>
-                {formatTime(barber.lunch_start)} –{" "}
-                {formatTime(barber.lunch_end)}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -528,6 +590,7 @@ export default function DashboardEmployeesPage() {
   const [barbers, setBarbers] = useState([]);
   const [loadingFetch, setLoadingFetch] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [selectedBarberToEdit, setSelectedBarberToEdit] = useState(null);
 
   useEffect(() => {
     async function fetchBarbers() {
@@ -556,6 +619,23 @@ export default function DashboardEmployeesPage() {
 
   function handleBarberCreated(newBarber) {
     setBarbers((prev) => [...prev, newBarber]);
+  }
+
+  function handleBarberEdit(barber) {
+    setSelectedBarberToEdit(barber);
+
+    // TODO: Implement edit flow later.
+    // Example future behavior:
+    // - Open an edit modal
+    // - Fill the form with barber data
+    // - Submit PUT/PATCH request
+    // - Update the local barbers list
+  }
+
+  function handleBarberDeleted(barberId) {
+    setBarbers((prev) => {
+      return prev.filter((barber) => barber.barber_id !== barberId);
+    });
   }
 
   return (
@@ -587,6 +667,18 @@ export default function DashboardEmployeesPage() {
               Expanda o legado. Cadastre um novo profissional e crie seu acesso
               ao sistema em uma única etapa.
             </p>
+
+            {selectedBarberToEdit && (
+              <div className="mt-6 bg-surface-container-lowest p-4">
+                <p className="text-[10px] font-label uppercase tracking-widest text-primary mb-1">
+                  Barbeiro selecionado para edição
+                </p>
+
+                <p className="text-sm text-on-surface-variant">
+                  {selectedBarberToEdit.barber_name}
+                </p>
+              </div>
+            )}
           </div>
 
           <BarberForm onBarberCreated={handleBarberCreated} />
@@ -662,7 +754,12 @@ export default function DashboardEmployeesPage() {
           {!loadingFetch && !fetchError && barbers.length > 0 && (
             <div className="space-y-4">
               {barbers.map((barber) => (
-                <BarberCard key={barber.barber_id} barber={barber} />
+                <BarberCard
+                  key={barber.barber_id}
+                  barber={barber}
+                  onEdit={handleBarberEdit}
+                  onDelete={handleBarberDeleted}
+                />
               ))}
             </div>
           )}
