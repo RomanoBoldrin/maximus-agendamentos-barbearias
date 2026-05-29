@@ -24,18 +24,70 @@ function formatDisplayPrice(price) {
   })}`;
 }
 
+// ─── Icons ───────────────────────────────────────────────────────────────────
+
+function EditIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.04c.39-.39.39-1.02 0-1.41L18.2 3.29a.9959.9959 0 0 0-1.41 0l-1.96 1.96L18.58 9l2.13-1.79z" />
+    </svg>
+  );
+}
+
 // ─── ServiceCard ─────────────────────────────────────────────────────────────
 
-function ServiceCard({ service }) {
+function ServiceCard({ service, onEdit, onDelete }) {
+  function handleEditClick(event) {
+    event.stopPropagation();
+
+    onEdit(service);
+  }
+
+  function handleDeleteClick(event) {
+    event.stopPropagation();
+
+    onDelete(service.service_id);
+  }
+
   return (
-    <div className="bg-surface-container-high hover:bg-surface-container-highest transition-colors p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)] group">
+    <div className="relative bg-surface-container-high hover:bg-surface-container-highest transition-colors p-6 pr-24 shadow-[0_10px_40px_rgba(0,0,0,0.35)] group">
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={handleEditClick}
+          aria-label={`Editar serviço ${service.service_name}`}
+          title="Editar serviço"
+          className="flex h-7 w-7 items-center justify-center bg-surface-container-lowest text-primary font-bold text-xs uppercase tracking-widest hover:bg-primary hover:text-on-primary active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/40"
+        >
+          <EditIcon />
+        </button>
+
+        <button
+          type="button"
+          onClick={handleDeleteClick}
+          aria-label={`Excluir serviço ${service.service_name}`}
+          title="Excluir serviço"
+          className="flex h-7 w-7 items-center justify-center bg-[#2a0f0f] text-[#ffb4ab] font-bold text-xs uppercase tracking-widest hover:bg-[#3a1515] hover:text-[#ffd6d1] active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#ffb4ab]/40"
+        >
+          ×
+        </button>
+      </div>
+
       {/* Name row with Razor's Edge accent */}
       <div className="flex items-start gap-3 mb-3">
         <div className="h-full w-1 bg-primary shrink-0 mt-1 self-stretch" />
+
         <div className="flex-1 min-w-0">
           <h4 className="font-headline text-xl font-bold text-on-surface leading-snug">
             {service.service_name}
           </h4>
+
           {service.service_description && (
             <p className="text-sm text-on-surface-variant mt-1 leading-relaxed">
               {service.service_description}
@@ -65,12 +117,14 @@ function ServiceCardSkeleton() {
     <div className="bg-surface-container-high p-6 animate-pulse">
       <div className="flex items-start gap-3 mb-3">
         <div className="w-1 bg-primary/20 self-stretch shrink-0 mt-1" />
+
         <div className="flex-1 space-y-2">
           <div className="h-5 bg-surface-container-highest w-2/3" />
           <div className="h-3 bg-surface-container-highest w-full" />
           <div className="h-3 bg-surface-container-highest w-4/5" />
         </div>
       </div>
+
       <div className="flex items-center gap-4 pl-4 mt-4">
         <div className="h-6 w-20 bg-surface-container-highest" />
         <div className="ml-auto h-7 w-24 bg-surface-container-highest" />
@@ -180,6 +234,7 @@ function ServiceForm({ onServiceCreated }) {
     if (touched[fieldName] && errors[fieldName]) {
       return "border-red-500/50 focus:border-red-400";
     }
+
     return "border-outline-variant/30 focus:border-primary";
   }
 
@@ -194,6 +249,7 @@ function ServiceForm({ onServiceCreated }) {
           >
             Nome do Serviço <span aria-hidden="true">*</span>
           </label>
+
           <input
             id="service-name"
             name="name"
@@ -205,6 +261,7 @@ function ServiceForm({ onServiceCreated }) {
             autoComplete="off"
             className={`${fieldBaseClass} ${fieldBorderClass("name")}`}
           />
+
           {touched.name && errors.name && (
             <p className="mt-1.5 text-xs text-red-400">{errors.name}</p>
           )}
@@ -221,6 +278,7 @@ function ServiceForm({ onServiceCreated }) {
               (opcional)
             </span>
           </label>
+
           <textarea
             id="service-description"
             name="description"
@@ -241,6 +299,7 @@ function ServiceForm({ onServiceCreated }) {
             >
               Duração (min) <span aria-hidden="true">*</span>
             </label>
+
             <input
               id="service-duration"
               name="duration"
@@ -254,6 +313,7 @@ function ServiceForm({ onServiceCreated }) {
               inputMode="numeric"
               className={`${fieldBaseClass} ${fieldBorderClass("duration")}`}
             />
+
             {touched.duration && errors.duration && (
               <p className="mt-1.5 text-xs text-red-400">{errors.duration}</p>
             )}
@@ -266,6 +326,7 @@ function ServiceForm({ onServiceCreated }) {
             >
               Preço (R$) <span aria-hidden="true">*</span>
             </label>
+
             <input
               id="service-price"
               name="price"
@@ -277,6 +338,7 @@ function ServiceForm({ onServiceCreated }) {
               placeholder="50,00"
               className={`${fieldBaseClass} ${fieldBorderClass("price")}`}
             />
+
             {touched.price && errors.price && (
               <p className="mt-1.5 text-xs text-red-400">{errors.price}</p>
             )}
@@ -321,6 +383,7 @@ export default function DashboardServicesPage() {
   const [services, setServices] = useState([]);
   const [loadingFetch, setLoadingFetch] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [selectedServiceToEdit, setSelectedServiceToEdit] = useState(null);
 
   useEffect(() => {
     async function fetchServices() {
@@ -351,12 +414,30 @@ export default function DashboardServicesPage() {
     setServices((prev) => [...prev, newService]);
   }
 
+  function handleServiceEdit(service) {
+    setSelectedServiceToEdit(service);
+
+    // TODO: Implement edit flow later.
+    // Example future behavior:
+    // - Open an edit modal
+    // - Fill the form with service data
+    // - Submit PUT/PATCH request
+    // - Update the local services list
+  }
+
+  function handleServiceDeleted(serviceId) {
+    setServices((prev) => {
+      return prev.filter((service) => service.service_id !== serviceId);
+    });
+  }
+
   return (
     <>
       {/* Page Header */}
       <div className="mb-12 px-8 pt-8">
         <div className="flex items-center gap-2 mb-2">
           <div className="h-6 w-1 bg-primary" />
+
           <span className="text-xs font-label uppercase tracking-[0.2em] text-primary">
             Administração
           </span>
@@ -380,6 +461,18 @@ export default function DashboardServicesPage() {
               Cadastre um novo serviço disponível para agendamento. O serviço
               será listado imediatamente após o cadastro.
             </p>
+
+            {selectedServiceToEdit && (
+              <div className="mt-6 bg-surface-container-lowest p-4">
+                <p className="text-[10px] font-label uppercase tracking-widest text-primary mb-1">
+                  Serviço selecionado para edição
+                </p>
+
+                <p className="text-sm text-on-surface-variant">
+                  {selectedServiceToEdit.service_name}
+                </p>
+              </div>
+            )}
           </div>
 
           <ServiceForm onServiceCreated={handleServiceCreated} />
@@ -390,11 +483,13 @@ export default function DashboardServicesPage() {
           {/* Section header */}
           <div className="flex items-center gap-3 mb-8">
             <div className="h-4 w-1 bg-primary shrink-0" />
+
             <h3 className="font-headline text-2xl font-bold text-on-surface">
               Serviços Cadastrados
             </h3>
+
             {!loadingFetch && !fetchError && (
-              <span className="ml-auto text-[10px] font-label uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5">
+              <span className="ml-auto text-[10px] font-label uppercase tracking-widest text-primary bg-primary/10 px-4 py-0.5">
                 {services.length}{" "}
                 {services.length === 1 ? "serviço" : "serviços"}
               </span>
@@ -419,6 +514,7 @@ export default function DashboardServicesPage() {
               <p className="text-xs font-label uppercase tracking-widest text-red-400 mb-1">
                 Erro ao carregar
               </p>
+
               <p className="text-sm text-red-300 leading-relaxed">
                 {fetchError}
               </p>
@@ -455,7 +551,12 @@ export default function DashboardServicesPage() {
           {!loadingFetch && !fetchError && services.length > 0 && (
             <div className="space-y-4 overflow-y-auto">
               {services.map((service) => (
-                <ServiceCard key={service.service_id} service={service} />
+                <ServiceCard
+                  key={service.service_id}
+                  service={service}
+                  onEdit={handleServiceEdit}
+                  onDelete={handleServiceDeleted}
+                />
               ))}
             </div>
           )}
