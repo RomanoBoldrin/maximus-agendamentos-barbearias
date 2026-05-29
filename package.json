@@ -26,7 +26,9 @@
     "db:seed:admin": "node src/scripts/seed-admin.mjs",
     "db:seed:admin:dev": "dotenv -e .env.development -- npm run db:seed:admin",
     "db:seed:admin:test": "dotenv -e .env.test -- npm run db:seed:admin",
-    "db:seed:admin:prod": "dotenv -e .env.production -- npm run db:seed:admin"
+    "db:seed:admin:prod": "dotenv -e .env.production -- npm run db:seed:admin",
+    "db:reset:development": "dotenv -e .env.development -- prisma migrate reset --force",
+    "db:reset:test": "dotenv -e .env.test -- prisma migrate reset --force"
   },
   "author": "",
   "license": "MIT",
