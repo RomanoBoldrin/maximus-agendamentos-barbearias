@@ -75,16 +75,14 @@ export default function DashboardSidebar({ collapsed = false }) {
       >
         <div className="px-6 py-8 overflow-hidden">
           <div className="flex flex-col">
-            <Link href="/home" title="Emperor">
-              <span
-                className={`block text-2xl font-bold font-serif text-[#e9c349] uppercase leading-none whitespace-nowrap transition-all duration-300 ${
-                  collapsed ? "max-w-[1ch] overflow-hidden" : "max-w-full"
-                }`}
-                aria-label="Emperor"
-              >
-                Emperor
-              </span>
-            </Link>
+            <span
+              className={`block text-2xl font-bold font-serif text-[#e9c349] uppercase leading-none whitespace-nowrap transition-all duration-300 ${
+                collapsed ? "max-w-[1ch] overflow-hidden" : "max-w-full"
+              }`}
+              aria-label="Emperor"
+            >
+              Emperor
+            </span>
 
             <span
               className={`text-[10px] uppercase tracking-[0.2em] font-medium text-[#e9e1d6]/50 mt-1 font-label whitespace-nowrap transition-all duration-300 ${
