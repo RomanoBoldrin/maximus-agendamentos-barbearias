@@ -422,7 +422,9 @@ export default function EmperorBarbershopPage() {
 
   useEffect(() => {
     if (selectedTime) {
-      const slot = availableSlotsWithBlockedInfo.find((s) => s.time === selectedTime);
+      const slot = availableSlotsWithBlockedInfo.find(
+        (s) => s.time === selectedTime,
+      );
       if (slot && slot.blocked) {
         const timer = setTimeout(() => {
           setSelectedTime(null);
@@ -603,7 +605,11 @@ export default function EmperorBarbershopPage() {
 
     if (!hasAvailable) {
       if (isManualDateSelection) {
-        setTimeout(() => setNoSlotsMessage("Não há horários disponíveis para esta data."), 0);
+        setTimeout(
+          () =>
+            setNoSlotsMessage("Não há horários disponíveis para esta data."),
+          0,
+        );
       } else {
         if (!isSearchingNextDate) {
           setTimeout(() => searchNextAvailableDate(selectedDate), 0);
@@ -862,33 +868,33 @@ export default function EmperorBarbershopPage() {
                         </p>
                       ) : (
                         <div className="grid grid-cols-2 gap-3 h-64 overflow-y-auto pr-4 custom-scrollbar">
-                        {availableSlotsWithBlockedInfo.length === 0 && (
-                          <div className="col-span-2 text-on-surface-variant text-xs uppercase tracking-widest opacity-60">
-                            Nenhum horário disponível
-                          </div>
-                        )}
+                          {availableSlotsWithBlockedInfo.length === 0 && (
+                            <div className="col-span-2 text-on-surface-variant text-xs uppercase tracking-widest opacity-60">
+                              Nenhum horário disponível
+                            </div>
+                          )}
 
-                        {availableSlotsWithBlockedInfo.map((slot) => (
-                          <TimeSlotButton
-                            key={slot.time}
-                            time={slot.time}
-                            active={selectedTime === slot.time}
-                            disabled={slot.blocked}
-                            disabledLabel={
-                              slot.blockedReason === "past"
-                                ? "Horário passado"
-                                : "Indisponível"
-                            }
-                            onClick={(time) => {
-                              if (!slot.blocked) {
-                                setSelectedTime(time);
-                                setSubmitError("");
+                          {availableSlotsWithBlockedInfo.map((slot) => (
+                            <TimeSlotButton
+                              key={slot.time}
+                              time={slot.time}
+                              active={selectedTime === slot.time}
+                              disabled={slot.blocked}
+                              disabledLabel={
+                                slot.blockedReason === "past"
+                                  ? "Horário passado"
+                                  : "Indisponível"
                               }
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
+                              onClick={(time) => {
+                                if (!slot.blocked) {
+                                  setSelectedTime(time);
+                                  setSubmitError("");
+                                }
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
 
                       {selectedService && (
                         <p className="text-[10px] uppercase tracking-widest text-on-surface-variant opacity-50">
