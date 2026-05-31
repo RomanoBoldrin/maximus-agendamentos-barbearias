@@ -67,6 +67,125 @@ import BarberCard from "@/features/appointment/booking/components/BarberCard";
 import CalendarDayButton from "@/features/appointment/booking/components/CalendarDayButton";
 import TimeSlotButton from "@/features/appointment/booking/components/TimeSlotButton";
 
+// ---------------------------------------------------------------------------
+// Local UX helper components
+// ---------------------------------------------------------------------------
+
+/**
+ * Horizontal progress indicator showing the 5 booking steps.
+ * Completed steps are gold (✓); pending steps are muted (○ number).
+ */
+function BookingProgress({ steps }) {
+  return (
+    <div className="mb-12">
+      <div className="flex flex-wrap items-center">
+        {steps.map((step, index) => (
+          <div key={step.label} className="flex items-center">
+            <div
+              className={`flex items-center gap-2 px-4 py-3 ${
+                step.done
+                  ? "bg-surface-container-high"
+                  : "bg-surface-container-lowest"
+              }`}
+            >
+              <span
+                className={`font-label text-[10px] font-bold w-4 text-center select-none ${
+                  step.done
+                    ? "text-primary"
+                    : "text-on-surface-variant opacity-30"
+                }`}
+              >
+                {step.done ? "✓" : String(index + 1)}
+              </span>
+              <span
+                className={`font-label text-[10px] uppercase tracking-[0.15em] whitespace-nowrap ${
+                  step.done
+                    ? "text-on-surface"
+                    : "text-on-surface-variant opacity-30"
+                }`}
+              >
+                {step.label}
+              </span>
+            </div>
+
+            {index < steps.length - 1 && (
+              <span className="text-on-surface-variant opacity-20 text-[10px] px-1 select-none">
+                —
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Short directional hint rendered at the bottom of a booking step section.
+ * Guides users toward the next action without blocking the flow.
+ */
+function StepHint({ children }) {
+  return (
+    <div className="mt-6 border-l-2 border-primary/30 pl-4 py-1">
+      <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant opacity-60">
+        {children}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Inline CTA section rendered after Step 4.
+ * Uses the same handleConfirm / canConfirm / isSubmitting logic as the
+ * sticky summary card — no new state is introduced.
+ */
+function FinalConfirmationCard({
+  canConfirm,
+  isSubmitting,
+  submitError,
+  onConfirm,
+}) {
+  return (
+    <section className="bg-surface-container-high p-10">
+      <div className="flex items-center gap-6 mb-8">
+        <div className="w-1 h-12 bg-primary flex-shrink-0" />
+        <h2 className="font-headline text-4xl font-bold italic tracking-tight">
+          Tudo pronto para confirmar?
+        </h2>
+      </div>
+
+      <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant opacity-60 mb-10 leading-relaxed">
+        Revise o serviço, barbeiro, data, horário e seus dados de contato antes
+        de finalizar o agendamento.
+      </p>
+
+      {submitError && (
+        <div className="bg-[#ffb4ab]/10 border border-[#ffb4ab]/40 p-4 mb-6">
+          <p className="text-[#ffb4ab] text-[10px] uppercase tracking-widest">
+            {submitError}
+          </p>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={onConfirm}
+        className="w-full py-6 bg-primary text-on-primary font-bold uppercase tracking-widest text-sm shadow-[0_14px_30px_rgba(17,14,8,0.35)] hover:bg-[#f0ca55] hover:shadow-[4px_4px_0px_rgba(233,195,73,0.25)] active:translate-y-[1px] active:scale-[0.99] active:shadow-none transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:hover:shadow-none"
+        disabled={!canConfirm}
+      >
+        {isSubmitting ? "Confirmando..." : "Confirmar Agendamento"}
+        <span className="text-xl">→</span>
+      </button>
+
+      <p className="text-center font-label text-[10px] text-on-surface-variant mt-6 uppercase tracking-widest opacity-50">
+        Cancelamento com 24h de antecedência
+      </p>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
 export default function EmperorBarbershopPage() {
   const router = useRouter();
   const toastShownRef = useRef(false);
@@ -147,8 +266,8 @@ export default function EmperorBarbershopPage() {
 
         setServices(mappedServices);
         setBarbers(mappedBarbers);
-        setSelectedService(mappedServices[0] || null);
-        setSelectedBarber(mappedBarbers[0] || null);
+        setSelectedService(null);
+        setSelectedBarber(null);
       } catch (error) {
         if (shouldIgnore) return;
 
@@ -209,6 +328,28 @@ export default function EmperorBarbershopPage() {
     isClientNameValid &&
     isClientPhoneValid &&
     !isSubmitting;
+
+  // isFormComplete does not include !isSubmitting so that the progress
+  // indicator step 5 stays gold (✓) while the network request is in flight,
+  // avoiding a distracting flicker back to ○.
+  const isFormComplete =
+    Boolean(selectedService) &&
+    Boolean(selectedBarber) &&
+    Boolean(selectedDate) &&
+    Boolean(selectedTime) &&
+    isClientNameValid &&
+    isClientPhoneValid;
+
+  const bookingSteps = [
+    { label: "Serviço", done: Boolean(selectedService) },
+    { label: "Barbeiro", done: Boolean(selectedBarber) },
+    {
+      label: "Data e horário",
+      done: Boolean(selectedDate) && Boolean(selectedTime),
+    },
+    { label: "Dados", done: isClientNameValid && isClientPhoneValid },
+    { label: "Confirmar", done: isFormComplete },
+  ];
 
   function goPrevMonth() {
     setCurrentMonth((prev) => {
@@ -342,373 +483,485 @@ export default function EmperorBarbershopPage() {
         )}
 
         {!isLoadingData && !loadError && canLoadBookingFlow && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-            <div className="lg:col-span-8 space-y-24">
-              <section>
-                <StepTitle>Passo 1: Escolha seu Serviço</StepTitle>
+          <>
+            <BookingProgress steps={bookingSteps} />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {services.map((service) => (
-                    <div key={service.id}>
-                      <ServiceCard
-                        service={service}
-                        selected={selectedService?.id === service.id}
-                        onSelect={(svc) => {
-                          setSelectedService(svc);
-                          setSelectedTime(null);
-                          setSubmitError("");
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </section>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+              {/* ── Left column: booking steps ── */}
+              <div className="lg:col-span-8 space-y-24">
+                <section>
+                  <StepTitle>Passo 1: Escolha seu Serviço</StepTitle>
 
-              <section>
-                <StepTitle>Passo 2: Selecione seu Barbeiro</StepTitle>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-10 max-w-5xl">
-                  {barbers.map((barber) => (
-                    <BarberCard
-                      key={barber.id}
-                      barber={barber}
-                      selected={selectedBarber?.id === barber.id}
-                      onSelect={(b) => {
-                        setSelectedBarber(b);
-                        setSelectedTime(null);
-                        setSubmitError("");
-                      }}
-                    />
-                  ))}
-                </div>
-              </section>
-
-              <section>
-                <StepTitle>Passo 3: Escolha Data e Horário</StepTitle>
-
-                <div className="bg-surface-container-high p-8 grid grid-cols-1 md:grid-cols-2 gap-12">
-                  <div>
-                    <div className="flex justify-between items-center mb-8">
-                      <h5 className="font-headline text-2xl italic">
-                        {formatMonthYear(currentMonth)}
-                      </h5>
-
-                      <div className="flex gap-4">
-                        <button
-                          type="button"
-                          onClick={goPrevMonth}
-                          className="cursor-pointer hover:text-primary"
-                          aria-label="Mês anterior"
-                        >
-                          ◀
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={goNextMonth}
-                          className="cursor-pointer hover:text-primary"
-                          aria-label="Próximo mês"
-                        >
-                          ▶
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-7 text-center text-[10px] font-label text-primary mb-4 opacity-50">
-                      <div>SEG</div>
-                      <div>TER</div>
-                      <div>QUA</div>
-                      <div>QUI</div>
-                      <div>SEX</div>
-                      <div>SÁB</div>
-                      <div>DOM</div>
-                    </div>
-
-                    <div className="grid grid-cols-7 text-center gap-y-4">
-                      {calendarCells.map((cell, idx) => (
-                        <CalendarDayButton
-                          key={`${cell.monthOffset}-${cell.day}-${idx}`}
-                          cell={cell}
-                          active={
-                            selectedDate &&
-                            cell.date.toDateString() ===
-                              selectedDate.toDateString()
-                          }
-                          onSelect={(date) => {
-                            setSelectedDate(date);
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {services.map((service) => (
+                      <div key={service.id}>
+                        <ServiceCard
+                          service={service}
+                          selected={selectedService?.id === service.id}
+                          onSelect={(svc) => {
+                            setSelectedService(svc);
                             setSelectedTime(null);
                             setSubmitError("");
                           }}
                         />
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
 
-                  <div className="space-y-4">
-                    <h5 className="font-headline text-2xl italic mb-6">
-                      HORÁRIOS DISPONÍVEIS
-                    </h5>
+                  <StepHint>
+                    Depois de escolher o serviço, selecione o barbeiro para
+                    continuar.
+                  </StepHint>
+                </section>
 
-                    <div className="grid grid-cols-2 gap-3 h-64 overflow-y-auto pr-4 custom-scrollbar">
-                      {availableSlotsWithBlockedInfo.length === 0 && (
-                        <div className="col-span-2 text-on-surface-variant text-xs uppercase tracking-widest opacity-60">
-                          Nenhum horário disponível
-                        </div>
-                      )}
+                <section>
+                  <StepTitle>Passo 2: Selecione seu Barbeiro</StepTitle>
 
-                      {availableSlotsWithBlockedInfo.map((slot) => (
-                        <TimeSlotButton
-                          key={slot.time}
-                          time={slot.time}
-                          active={selectedTime === slot.time}
-                          disabled={slot.blocked}
-                          onClick={(time) => {
-                            if (!slot.blocked) {
-                              setSelectedTime(time);
-                              setSubmitError("");
-                            }
-                          }}
-                        />
-                      ))}
-                    </div>
-
-                    {selectedService && (
-                      <p className="text-[10px] uppercase tracking-widest text-on-surface-variant opacity-50">
-                        Duração do serviço: {selectedService.durationMinutes}{" "}
-                        min
-                      </p>
-                    )}
-
-                    <p className="text-[10px] uppercase tracking-widest text-on-surface-variant opacity-50">
-                      A disponibilidade final será validada ao confirmar.
-                    </p>
-                  </div>
-                </div>
-              </section>
-
-              <section>
-                <StepTitle>Passo 4: Informe seus Dados</StepTitle>
-
-                <div className="bg-surface-container-high p-8">
-                  <div className="max-w-xl space-y-8">
-                    <div>
-                      <label
-                        className="block font-label text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-3"
-                        htmlFor="clientName"
-                      >
-                        Nome do Cliente
-                      </label>
-
-                      <input
-                        id="clientName"
-                        name="clientName"
-                        type="text"
-                        value={clientName}
-                        onChange={(event) => {
-                          setClientName(event.target.value);
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-10 max-w-5xl">
+                    {barbers.map((barber) => (
+                      <BarberCard
+                        key={barber.id}
+                        barber={barber}
+                        selected={selectedBarber?.id === barber.id}
+                        onSelect={(b) => {
+                          setSelectedBarber(b);
+                          setSelectedTime(null);
                           setSubmitError("");
                         }}
-                        placeholder="Seu nome"
-                        autoComplete="name"
-                        className="w-full bg-surface-container-lowest border-none border-b-2 border-outline-variant/30 focus:border-primary focus:ring-0 text-on-surface placeholder:text-on-surface-variant/30 py-4 px-3 transition-colors duration-300 font-body outline-none"
                       />
+                    ))}
+                  </div>
 
-                      {clientName.length > 0 && !isClientNameValid && (
-                        <p className="mt-3 text-[10px] uppercase tracking-widest text-[#ffb4ab]">
-                          Informe seu nome para continuar.
-                        </p>
-                      )}
-                    </div>
+                  <StepHint>
+                    Agora escolha a melhor data e horário disponível.
+                  </StepHint>
+                </section>
 
+                <section>
+                  <StepTitle>Passo 3: Escolha Data e Horário</StepTitle>
+
+                  <div className="bg-surface-container-high p-8 grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div>
-                      <label
-                        className="block font-label text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-3"
-                        htmlFor="clientPhone"
-                      >
-                        Telefone do Cliente
-                      </label>
-
-                      <input
-                        id="clientPhone"
-                        name="clientPhone"
-                        type="tel"
-                        value={clientPhone}
-                        onChange={(event) => {
-                          setClientPhone(formatPhone(event.target.value));
-                          setSubmitError("");
-                        }}
-                        placeholder="(00) 00000-0000"
-                        autoComplete="tel"
-                        className="w-full bg-surface-container-lowest border-none border-b-2 border-outline-variant/30 focus:border-primary focus:ring-0 text-on-surface placeholder:text-on-surface-variant/30 py-4 px-3 transition-colors duration-300 font-body outline-none"
-                      />
-
-                      <p className="mt-4 text-[10px] uppercase tracking-widest text-on-surface-variant opacity-60">
-                        Usaremos este número para identificar ou confirmar seu
-                        agendamento.
-                      </p>
-
-                      {clientPhone.length > 0 && !isClientPhoneValid && (
-                        <p className="mt-3 text-[10px] uppercase tracking-widest text-[#ffb4ab]">
-                          Informe um telefone brasileiro válido com DDD.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div>
-
-            <div className="lg:col-span-4">
-              <div className="sticky top-32 space-y-8">
-                <section className="bg-surface-container-high p-10">
-                  <div className="flex items-center gap-6 mb-12">
-                    <div className="w-1 h-12 bg-primary" />
-                    <h2 className="font-headline text-4xl font-bold italic tracking-tight">
-                      Resumo
-                    </h2>
-                  </div>
-
-                  <div className="space-y-8">
-                    <div className="flex justify-between items-end border-b border-outline-variant pb-4">
-                      <div>
-                        <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
-                          SERVIÇO
-                        </p>
-                        <p className="font-headline text-2xl">
-                          {selectedService?.title ||
-                            "Nenhum serviço selecionado"}
-                        </p>
-                      </div>
-
-                      <p className="font-body text-on-surface">
-                        {selectedService
-                          ? `R$ ${selectedService.priceValue.toFixed(2)}`
-                          : "R$ 0,00"}
-                      </p>
-                    </div>
-
-                    <div className="flex justify-between items-end border-b border-outline-variant pb-4">
-                      <div>
-                        <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
-                          BARBEIRO
-                        </p>
-                        <p className="font-headline text-2xl">
-                          {selectedBarber?.name ||
-                            "Nenhum barbeiro selecionado"}
-                        </p>
-                      </div>
-
-                      <span className="text-primary">
-                        <svg
-                          width="26"
-                          height="26"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                        >
-                          <path d="M12 1l3 7 8 .7-6 5.1 2 7.7-7-4.3-7 4.3 2-7.7-6-5.1L9 8z" />
-                        </svg>
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-end border-b border-outline-variant pb-4">
-                      <div>
-                        <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
-                          AGENDAMENTO
-                        </p>
-
-                        <p className="font-headline text-2xl">
-                          {selectedDate && selectedTime
-                            ? `${formatSelectedDate(selectedDate)} ${selectedTime}`
-                            : "Selecione data e horário"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-end border-b border-outline-variant pb-4">
-                      <div>
-                        <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
-                          CLIENTE
-                        </p>
-
-                        <p className="font-headline text-2xl">
-                          {clientName || "Informe seu nome"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-end border-b border-outline-variant pb-4">
-                      <div>
-                        <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary mb-1">
-                          TELEFONE
-                        </p>
-
-                        <p className="font-headline text-2xl">
-                          {clientPhone || "Informe seu telefone"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {submitError && (
-                      <div className="bg-[#ffb4ab]/10 border border-[#ffb4ab]/40 p-4">
-                        <p className="text-[#ffb4ab] text-[10px] uppercase tracking-widest">
-                          {submitError}
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="pt-8">
                       <div className="flex justify-between items-center mb-8">
-                        <span className="font-headline text-3xl italic">
-                          Total
-                        </span>
-                        <span className="font-headline text-4xl text-primary font-bold">
-                          R$ {total.toFixed(2)}
-                        </span>
+                        <h5 className="font-headline text-2xl italic">
+                          {formatMonthYear(currentMonth)}
+                        </h5>
+
+                        <div className="flex gap-4">
+                          <button
+                            type="button"
+                            onClick={goPrevMonth}
+                            className="cursor-pointer hover:text-primary"
+                            aria-label="Mês anterior"
+                          >
+                            ◀
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={goNextMonth}
+                            className="cursor-pointer hover:text-primary"
+                            aria-label="Próximo mês"
+                          >
+                            ▶
+                          </button>
+                        </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={handleConfirm}
-                        className="w-full py-6 bg-primary text-on-primary font-bold uppercase tracking-widest text-sm shadow-[0_14px_30px_rgba(17,14,8,0.35)] hover:bg-[#f0ca55] hover:shadow-[4px_4px_0px_rgba(233,195,73,0.25)] active:translate-y-[1px] active:scale-[0.99] active:shadow-none transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:hover:shadow-none"
-                        disabled={!canConfirmAppointment}
-                      >
-                        {isSubmitting
-                          ? "Confirmando..."
-                          : "Confirmar Agendamento"}
-                        <span className="text-xl">→</span>
-                      </button>
+                      <div className="grid grid-cols-7 text-center text-[10px] font-label text-primary mb-4 opacity-50">
+                        <div>SEG</div>
+                        <div>TER</div>
+                        <div>QUA</div>
+                        <div>QUI</div>
+                        <div>SEX</div>
+                        <div>SÁB</div>
+                        <div>DOM</div>
+                      </div>
 
-                      <p className="text-center font-label text-[10px] text-on-surface-variant mt-6 uppercase tracking-widest opacity-50">
-                        Cancelamento com 24h de antecedência
+                      <div className="grid grid-cols-7 text-center gap-y-4">
+                        {calendarCells.map((cell, idx) => (
+                          <CalendarDayButton
+                            key={`${cell.monthOffset}-${cell.day}-${idx}`}
+                            cell={cell}
+                            active={
+                              selectedDate &&
+                              cell.date.toDateString() ===
+                                selectedDate.toDateString()
+                            }
+                            onSelect={(date) => {
+                              setSelectedDate(date);
+                              setSelectedTime(null);
+                              setSubmitError("");
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h5 className="font-headline text-2xl italic mb-6">
+                        HORÁRIOS DISPONÍVEIS
+                      </h5>
+
+                      <div className="grid grid-cols-2 gap-3 h-64 overflow-y-auto pr-4 custom-scrollbar">
+                        {availableSlotsWithBlockedInfo.length === 0 && (
+                          <div className="col-span-2 text-on-surface-variant text-xs uppercase tracking-widest opacity-60">
+                            Nenhum horário disponível
+                          </div>
+                        )}
+
+                        {availableSlotsWithBlockedInfo.map((slot) => (
+                          <TimeSlotButton
+                            key={slot.time}
+                            time={slot.time}
+                            active={selectedTime === slot.time}
+                            disabled={slot.blocked}
+                            onClick={(time) => {
+                              if (!slot.blocked) {
+                                setSelectedTime(time);
+                                setSubmitError("");
+                              }
+                            }}
+                          />
+                        ))}
+                      </div>
+
+                      {selectedService && (
+                        <p className="text-[10px] uppercase tracking-widest text-on-surface-variant opacity-50">
+                          Duração do serviço: {selectedService.durationMinutes}{" "}
+                          min
+                        </p>
+                      )}
+
+                      <p className="text-[10px] uppercase tracking-widest text-on-surface-variant opacity-50">
+                        A disponibilidade final será validada ao confirmar.
                       </p>
+                    </div>
+                  </div>
+
+                  <StepHint>
+                    Para finalizar, informe seus dados de contato.
+                  </StepHint>
+                </section>
+
+                <section>
+                  <StepTitle>Passo 4: Informe seus Dados</StepTitle>
+
+                  <div className="bg-surface-container-high p-8">
+                    <div className="max-w-xl space-y-8">
+                      <div>
+                        <label
+                          className="block font-label text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-3"
+                          htmlFor="clientName"
+                        >
+                          Nome do Cliente
+                        </label>
+
+                        <input
+                          id="clientName"
+                          name="clientName"
+                          type="text"
+                          value={clientName}
+                          onChange={(event) => {
+                            setClientName(event.target.value);
+                            setSubmitError("");
+                          }}
+                          placeholder="Seu nome"
+                          autoComplete="name"
+                          className="w-full bg-surface-container-lowest border-none border-b-2 border-outline-variant/30 focus:border-primary focus:ring-0 text-on-surface placeholder:text-on-surface-variant/30 py-4 px-3 transition-colors duration-300 font-body outline-none"
+                        />
+
+                        {clientName.length > 0 && !isClientNameValid && (
+                          <p className="mt-3 text-[10px] uppercase tracking-widest text-[#ffb4ab]">
+                            Informe seu nome para continuar.
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label
+                          className="block font-label text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-3"
+                          htmlFor="clientPhone"
+                        >
+                          Telefone do Cliente
+                        </label>
+
+                        <input
+                          id="clientPhone"
+                          name="clientPhone"
+                          type="tel"
+                          value={clientPhone}
+                          onChange={(event) => {
+                            setClientPhone(formatPhone(event.target.value));
+                            setSubmitError("");
+                          }}
+                          placeholder="(00) 00000-0000"
+                          autoComplete="tel"
+                          className="w-full bg-surface-container-lowest border-none border-b-2 border-outline-variant/30 focus:border-primary focus:ring-0 text-on-surface placeholder:text-on-surface-variant/30 py-4 px-3 transition-colors duration-300 font-body outline-none"
+                        />
+
+                        <p className="mt-4 text-[10px] uppercase tracking-widest text-on-surface-variant opacity-60">
+                          Usaremos este número para identificar ou confirmar seu
+                          agendamento.
+                        </p>
+
+                        {clientPhone.length > 0 && !isClientPhoneValid && (
+                          <p className="mt-3 text-[10px] uppercase tracking-widest text-[#ffb4ab]">
+                            Informe um telefone brasileiro válido com DDD.
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </section>
 
-                <div className="relative bg-surface-container-high h-64 overflow-hidden group">
-                  <Image
-                    className="object-cover opacity-40 group-hover:scale-110 transition-transform duration-700"
-                    src="/barbershop-interior.png"
-                    alt="Interior moderno e luxuoso de uma barbearia."
-                    fill
-                    sizes="(max-width: 1024px) 100vw, 33vw"
-                  />
+                {/* ── Final inline CTA – second confirm button at natural scroll end ── */}
+                <FinalConfirmationCard
+                  canConfirm={canConfirmAppointment}
+                  isSubmitting={isSubmitting}
+                  submitError={submitError}
+                  onConfirm={handleConfirm}
+                />
+              </div>
 
-                  <div className="absolute inset-0 flex flex-col justify-center items-center p-8 text-center">
-                    <span className="text-primary text-5xl mb-4">✦</span>
+              {/* ── Right column: sticky summary ── */}
+              <div className="lg:col-span-4">
+                <div className="sticky top-32 space-y-8">
+                  <section className="bg-surface-container-high p-10">
+                    <div className="flex items-center gap-6 mb-12">
+                      <div className="w-1 h-12 bg-primary" />
+                      <h2 className="font-headline text-4xl font-bold italic tracking-tight">
+                        Resumo
+                      </h2>
+                    </div>
 
-                    <h6 className="font-headline text-2xl italic mb-2">
-                      O Padrão Maximus
-                    </h6>
+                    <div className="space-y-8">
+                      {/* Serviço */}
+                      <div className="flex justify-between items-end border-b border-outline-variant pb-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary">
+                              SERVIÇO
+                            </p>
+                            <span
+                              className={`text-[10px] select-none ${
+                                selectedService
+                                  ? "text-primary"
+                                  : "text-on-surface-variant opacity-40"
+                              }`}
+                            >
+                              {selectedService ? "✓" : "○"}
+                            </span>
+                          </div>
+                          <p
+                            className={`font-headline text-2xl ${
+                              !selectedService
+                                ? "text-on-surface-variant opacity-40"
+                                : ""
+                            }`}
+                          >
+                            {selectedService?.title || "Escolha um serviço"}
+                          </p>
+                        </div>
 
-                    <p className="text-xs uppercase tracking-widest opacity-70">
-                      Onde a precisão moderna encontra a tradição
-                    </p>
+                        <p className="font-body text-on-surface">
+                          {selectedService
+                            ? `R$ ${selectedService.priceValue.toFixed(2)}`
+                            : "R$ 0,00"}
+                        </p>
+                      </div>
+
+                      {/* Barbeiro */}
+                      <div className="flex justify-between items-end border-b border-outline-variant pb-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary">
+                              BARBEIRO
+                            </p>
+                            <span
+                              className={`text-[10px] select-none ${
+                                selectedBarber
+                                  ? "text-primary"
+                                  : "text-on-surface-variant opacity-40"
+                              }`}
+                            >
+                              {selectedBarber ? "✓" : "○"}
+                            </span>
+                          </div>
+                          <p
+                            className={`font-headline text-2xl ${
+                              !selectedBarber
+                                ? "text-on-surface-variant opacity-40"
+                                : ""
+                            }`}
+                          >
+                            {selectedBarber?.name || "Escolha um barbeiro"}
+                          </p>
+                        </div>
+
+                        <span className="text-primary">
+                          <svg
+                            width="26"
+                            height="26"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M12 1l3 7 8 .7-6 5.1 2 7.7-7-4.3-7 4.3 2-7.7-6-5.1L9 8z" />
+                          </svg>
+                        </span>
+                      </div>
+
+                      {/* Agendamento */}
+                      <div className="flex justify-between items-end border-b border-outline-variant pb-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary">
+                              AGENDAMENTO
+                            </p>
+                            <span
+                              className={`text-[10px] select-none ${
+                                selectedDate && selectedTime
+                                  ? "text-primary"
+                                  : "text-on-surface-variant opacity-40"
+                              }`}
+                            >
+                              {selectedDate && selectedTime ? "✓" : "○"}
+                            </span>
+                          </div>
+                          <p
+                            className={`font-headline text-2xl ${
+                              !(selectedDate && selectedTime)
+                                ? "text-on-surface-variant opacity-40"
+                                : ""
+                            }`}
+                          >
+                            {selectedDate && selectedTime
+                              ? `${formatSelectedDate(selectedDate)} ${selectedTime}`
+                              : "Selecione data e horário"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Cliente */}
+                      <div className="flex justify-between items-end border-b border-outline-variant pb-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary">
+                              CLIENTE
+                            </p>
+                            <span
+                              className={`text-[10px] select-none ${
+                                isClientNameValid
+                                  ? "text-primary"
+                                  : "text-on-surface-variant opacity-40"
+                              }`}
+                            >
+                              {isClientNameValid ? "✓" : "○"}
+                            </span>
+                          </div>
+                          <p
+                            className={`font-headline text-2xl ${
+                              !isClientNameValid
+                                ? "text-on-surface-variant opacity-40"
+                                : ""
+                            }`}
+                          >
+                            {clientName || "Informe seu nome"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Telefone */}
+                      <div className="flex justify-between items-end border-b border-outline-variant pb-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-label text-[10px] uppercase tracking-[0.2em] text-primary">
+                              TELEFONE
+                            </p>
+                            <span
+                              className={`text-[10px] select-none ${
+                                isClientPhoneValid
+                                  ? "text-primary"
+                                  : "text-on-surface-variant opacity-40"
+                              }`}
+                            >
+                              {isClientPhoneValid ? "✓" : "○"}
+                            </span>
+                          </div>
+                          <p
+                            className={`font-headline text-2xl ${
+                              !isClientPhoneValid
+                                ? "text-on-surface-variant opacity-40"
+                                : ""
+                            }`}
+                          >
+                            {clientPhone || "Informe seu telefone"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {submitError && (
+                        <div className="bg-[#ffb4ab]/10 border border-[#ffb4ab]/40 p-4">
+                          <p className="text-[#ffb4ab] text-[10px] uppercase tracking-widest">
+                            {submitError}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="pt-8">
+                        <div className="flex justify-between items-center mb-8">
+                          <span className="font-headline text-3xl italic">
+                            Total
+                          </span>
+                          <span className="font-headline text-4xl text-primary font-bold">
+                            R$ {total.toFixed(2)}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleConfirm}
+                          className="w-full py-6 bg-primary text-on-primary font-bold uppercase tracking-widest text-sm shadow-[0_14px_30px_rgba(17,14,8,0.35)] hover:bg-[#f0ca55] hover:shadow-[4px_4px_0px_rgba(233,195,73,0.25)] active:translate-y-[1px] active:scale-[0.99] active:shadow-none transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:hover:shadow-none"
+                          disabled={!canConfirmAppointment}
+                        >
+                          {isSubmitting
+                            ? "Confirmando..."
+                            : "Confirmar Agendamento"}
+                          <span className="text-xl">→</span>
+                        </button>
+
+                        <p className="text-center font-label text-[10px] text-on-surface-variant mt-6 uppercase tracking-widest opacity-50">
+                          Cancelamento com 24h de antecedência
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+
+                  <div className="relative bg-surface-container-high h-64 overflow-hidden group">
+                    <Image
+                      className="object-cover opacity-40 group-hover:scale-110 transition-transform duration-700"
+                      src="/barbershop-interior.png"
+                      alt="Interior moderno e luxuoso de uma barbearia."
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 33vw"
+                    />
+
+                    <div className="absolute inset-0 flex flex-col justify-center items-center p-8 text-center">
+                      <span className="text-primary text-5xl mb-4">✦</span>
+
+                      <h6 className="font-headline text-2xl italic mb-2">
+                        O Padrão Maximus
+                      </h6>
+
+                      <p className="text-xs uppercase tracking-widest opacity-70">
+                        Onde a precisão moderna encontra a tradição
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </>
         )}
       </main>
 
