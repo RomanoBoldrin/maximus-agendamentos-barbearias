@@ -35,7 +35,7 @@ src/
 
 */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import { showToast } from "nextjs-toast-notify";
@@ -215,6 +215,9 @@ export default function EmperorBarbershopPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
+  const [blockedSlots, setBlockedSlots] = useState([]);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
+
   useEffect(() => {
     if (!router.isReady) return;
     if (toastShownRef.current) return;
@@ -288,6 +291,74 @@ export default function EmperorBarbershopPage() {
     };
   }, []);
 
+  // --- Build date string helper (timezone-safe YYYY-MM-DD) ---
+  const formatDateParam = useCallback((date) => {
+    if (!date) return null;
+
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
+
+  // --- Fetch availability when barber + date are selected ---
+  useEffect(() => {
+    if (!selectedBarber || !selectedDate) {
+      return;
+    }
+
+    let shouldIgnore = false;
+
+    async function fetchAvailability() {
+      setIsLoadingAvailability(true);
+
+      try {
+        const dateParam = formatDateParam(selectedDate);
+
+        const response = await fetch(
+          `/api/v1/appointments/availability?barber_id=${selectedBarber.id}&date=${dateParam}`,
+        );
+
+        if (shouldIgnore) return;
+
+        if (!response.ok) {
+          setBlockedSlots([]);
+          return;
+        }
+
+        const body = await response.json();
+
+        if (shouldIgnore) return;
+
+        const newBlockedSlots = body.blocked_slots || [];
+
+        setBlockedSlots(newBlockedSlots);
+
+        setSelectedTime((prev) => {
+          if (prev && newBlockedSlots.includes(prev)) {
+            return null;
+          }
+
+          return prev;
+        });
+      } catch {
+        if (shouldIgnore) return;
+        setBlockedSlots([]);
+      } finally {
+        if (!shouldIgnore) {
+          setIsLoadingAvailability(false);
+        }
+      }
+    }
+
+    fetchAvailability();
+
+    return () => {
+      shouldIgnore = true;
+    };
+  }, [selectedBarber, selectedDate, formatDateParam]);
+
   const calendarCells = useMemo(() => {
     return getCalendarCells(currentMonth);
   }, [currentMonth]);
@@ -308,9 +379,9 @@ export default function EmperorBarbershopPage() {
   const availableSlotsWithBlockedInfo = useMemo(() => {
     return generatedSlots.map((slotTime) => ({
       time: slotTime,
-      blocked: false,
+      blocked: blockedSlots.includes(slotTime),
     }));
-  }, [generatedSlots]);
+  }, [generatedSlots, blockedSlots]);
 
   const total = selectedService?.priceValue ?? 0;
   const clientPhoneDigits = getPhoneDigits(clientPhone);
@@ -602,6 +673,12 @@ export default function EmperorBarbershopPage() {
                       <h5 className="font-headline text-2xl italic mb-6">
                         HORÁRIOS DISPONÍVEIS
                       </h5>
+
+                      {isLoadingAvailability && (
+                        <p className="text-[10px] uppercase tracking-widest text-primary opacity-70 animate-pulse">
+                          Verificando disponibilidade…
+                        </p>
+                      )}
 
                       <div className="grid grid-cols-2 gap-3 h-64 overflow-y-auto pr-4 custom-scrollbar">
                         {availableSlotsWithBlockedInfo.length === 0 && (
