@@ -1,4 +1,10 @@
-export default function TimeSlotButton({ time, active, disabled, onClick }) {
+export default function TimeSlotButton({
+  time,
+  active,
+  disabled,
+  disabledLabel = "Indisponível",
+  onClick,
+}) {
   return (
     <button
       type="button"
@@ -16,7 +22,7 @@ export default function TimeSlotButton({ time, active, disabled, onClick }) {
 
       {disabled && (
         <span className="text-[8px] uppercase tracking-[0.15em] text-on-surface-variant/20">
-          Indisponível
+          {disabledLabel}
         </span>
       )}
     </button>

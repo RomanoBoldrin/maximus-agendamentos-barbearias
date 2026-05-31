@@ -377,11 +377,57 @@ export default function EmperorBarbershopPage() {
   }, [selectedBarber, selectedService]);
 
   const availableSlotsWithBlockedInfo = useMemo(() => {
-    return generatedSlots.map((slotTime) => ({
-      time: slotTime,
-      blocked: blockedSlots.includes(slotTime),
-    }));
-  }, [generatedSlots, blockedSlots]);
+    const now = new Date();
+
+    return generatedSlots.map((slotTime) => {
+      let isPast = false;
+
+      if (selectedDate) {
+        const [hours, minutes] = slotTime.split(":").map(Number);
+        const slotDate = new Date(
+          selectedDate.getFullYear(),
+          selectedDate.getMonth(),
+          selectedDate.getDate(),
+          hours,
+          minutes,
+          0,
+          0,
+        );
+
+        if (slotDate <= now) {
+          isPast = true;
+        }
+      }
+
+      const isBlockedByAppointment = blockedSlots.includes(slotTime);
+      const isBlocked = isBlockedByAppointment || isPast;
+
+      let blockedReason = null;
+      if (isPast) {
+        blockedReason = "past";
+      } else if (isBlockedByAppointment) {
+        blockedReason = "appointment";
+      }
+
+      return {
+        time: slotTime,
+        blocked: isBlocked,
+        blockedReason: blockedReason,
+      };
+    });
+  }, [generatedSlots, blockedSlots, selectedDate]);
+
+  useEffect(() => {
+    if (selectedTime) {
+      const slot = availableSlotsWithBlockedInfo.find((s) => s.time === selectedTime);
+      if (slot && slot.blocked) {
+        const timer = setTimeout(() => {
+          setSelectedTime(null);
+        }, 0);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [availableSlotsWithBlockedInfo, selectedTime]);
 
   const total = selectedService?.priceValue ?? 0;
   const clientPhoneDigits = getPhoneDigits(clientPhone);
@@ -693,6 +739,11 @@ export default function EmperorBarbershopPage() {
                             time={slot.time}
                             active={selectedTime === slot.time}
                             disabled={slot.blocked}
+                            disabledLabel={
+                              slot.blockedReason === "past"
+                                ? "Horário passado"
+                                : "Indisponível"
+                            }
                             onClick={(time) => {
                               if (!slot.blocked) {
                                 setSelectedTime(time);
