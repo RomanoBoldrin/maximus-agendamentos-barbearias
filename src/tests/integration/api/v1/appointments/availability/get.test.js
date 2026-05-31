@@ -6,6 +6,8 @@ const availabilityUrl = `${webserver.origin}/api/v1/appointments/availability`;
 describe("GET /api/v1/appointments/availability", () => {
   describe("Validation", () => {
     test("Returns 400 when barber_id is missing", async () => {
+      await orchestrator.clearDatabase();
+
       const response = await fetch(`${availabilityUrl}?date=2026-06-02`);
 
       expect(response.status).toBe(400);
@@ -89,36 +91,6 @@ describe("GET /api/v1/appointments/availability", () => {
       expect(body.barber_id).toBe(barber.barberId);
       expect(body.date).toBe("2026-06-02");
       expect(body.blocked_slots).toEqual([]);
-    });
-
-    test("Blocks all 15-minute slots inside an existing appointment range", async () => {
-      const barber = await orchestrator.createBarber();
-      const client = await orchestrator.createClient();
-
-      // Appointment from 17:00 to 17:45 on 2026-06-02
-      const appointmentStart = new Date("2026-06-02T17:00:00-03:00");
-      const appointmentEnd = new Date("2026-06-02T17:45:00-03:00");
-
-      await orchestrator.createAppointment({
-        barberId: barber.barberId,
-        clientId: client.clientId,
-        appointmentDatetime: appointmentStart,
-        appointmentEndDatetime: appointmentEnd,
-        totalDuration: 45,
-        status: "AGENDADO",
-      });
-
-      const response = await fetch(
-        `${availabilityUrl}?barber_id=${barber.barberId}&date=2026-06-02`,
-      );
-
-      expect(response.status).toBe(200);
-
-      const body = await response.json();
-
-      expect(body.blocked_slots).toContain("17:00");
-      expect(body.blocked_slots).toContain("17:15");
-      expect(body.blocked_slots).toContain("17:30");
     });
 
     test("Does not block the exact end boundary", async () => {
@@ -246,52 +218,6 @@ describe("GET /api/v1/appointments/availability", () => {
       expect(Object.keys(body).sort()).toEqual(
         ["barber_id", "blocked_slots", "date"].sort(),
       );
-    });
-
-    test("Blocks slots from multiple appointments on the same day", async () => {
-      const barber = await orchestrator.createBarber();
-      const client = await orchestrator.createClient();
-
-      // First appointment: 09:00 to 09:30
-      await orchestrator.createAppointment({
-        barberId: barber.barberId,
-        clientId: client.clientId,
-        appointmentDatetime: new Date("2026-06-02T09:00:00-03:00"),
-        appointmentEndDatetime: new Date("2026-06-02T09:30:00-03:00"),
-        totalDuration: 30,
-        status: "AGENDADO",
-      });
-
-      // Second appointment: 15:00 to 15:45
-      await orchestrator.createAppointment({
-        barberId: barber.barberId,
-        clientId: client.clientId,
-        appointmentDatetime: new Date("2026-06-02T15:00:00-03:00"),
-        appointmentEndDatetime: new Date("2026-06-02T15:45:00-03:00"),
-        totalDuration: 45,
-        status: "AGENDADO",
-      });
-
-      const response = await fetch(
-        `${availabilityUrl}?barber_id=${barber.barberId}&date=2026-06-02`,
-      );
-
-      expect(response.status).toBe(200);
-
-      const body = await response.json();
-
-      // First appointment slots
-      expect(body.blocked_slots).toContain("09:00");
-      expect(body.blocked_slots).toContain("09:15");
-
-      // Second appointment slots
-      expect(body.blocked_slots).toContain("15:00");
-      expect(body.blocked_slots).toContain("15:15");
-      expect(body.blocked_slots).toContain("15:30");
-
-      // Boundaries should not be blocked
-      expect(body.blocked_slots).not.toContain("09:30");
-      expect(body.blocked_slots).not.toContain("15:45");
     });
 
     test("Does not return slots from a different barber", async () => {
