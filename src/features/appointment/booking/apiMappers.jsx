@@ -1,5 +1,3 @@
-import { formatApiTimeToMeridian } from "./timeHelpers";
-
 /**
  * Get SVG icon for a service based on service name
  * Returns appropriate barbershop-related icon (JSX)
@@ -59,10 +57,10 @@ export function mapServiceFromApi(service) {
  * @param {object} barber - Raw barber object from API
  * @param {string} barber.barber_id - Barber ID
  * @param {string} barber.barber_name - Barber name
- * @param {string} barber.work_start - Work start time in 24-hour format
- * @param {string} barber.work_end - Work end time in 24-hour format
- * @param {string} barber.lunch_start - Lunch start time in 24-hour format
- * @param {string} barber.lunch_end - Lunch end time in 24-hour format
+ * @param {string} barber.work_start - Work start time in 24h format (e.g., "08:00")
+ * @param {string} barber.work_end - Work end time in 24h format (e.g., "18:00")
+ * @param {string|null} barber.lunch_start - Lunch start time in 24h format or null
+ * @param {string|null} barber.lunch_end - Lunch end time in 24h format or null
  * @param {number} index - Index of barber in array (for image rotation)
  * @returns {object} Barber object formatted for UI
  */
@@ -75,9 +73,9 @@ export function mapBarberFromApi(barber, index) {
     role: "Barbeiro",
     image: fallbackImages[index % fallbackImages.length],
     alt: `Retrato de ${barber.barber_name}.`,
-    workStart: formatApiTimeToMeridian(barber.work_start || "08:00"),
-    workEnd: formatApiTimeToMeridian(barber.work_end || "18:00"),
-    lunchStart: formatApiTimeToMeridian(barber.lunch_start),
-    lunchEnd: formatApiTimeToMeridian(barber.lunch_end),
+    workStart: barber.work_start || "08:00",
+    workEnd: barber.work_end || "18:00",
+    lunchStart: barber.lunch_start || null,
+    lunchEnd: barber.lunch_end || null,
   };
 }
