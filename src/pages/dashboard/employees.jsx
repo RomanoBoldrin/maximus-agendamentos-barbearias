@@ -256,12 +256,6 @@ function BarberForm({ onBarberCreated }) {
     };
   }, [form.password]);
 
-  const isPasswordValid =
-    passwordRules.hasLowercase &&
-    passwordRules.hasUppercase &&
-    passwordRules.hasNumber &&
-    passwordRules.hasMinLength;
-
   const passwordsMatch =
     form.password.length > 0 &&
     form.confirm_password.length > 0 &&
