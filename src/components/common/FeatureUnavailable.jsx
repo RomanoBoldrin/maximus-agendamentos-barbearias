@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useRouter } from "next/router";
 
 export default function FeatureUnavailable({
   eyebrow = "Feature descoberta",
@@ -11,6 +12,7 @@ export default function FeatureUnavailable({
   secondaryActionLabel = "Voltar para Home",
   secondaryActionHref = "/home",
 }) {
+  const router = useRouter();
   return (
     <div className="bg-background text-on-surface min-h-screen">
       <section className="relative min-h-[calc(100vh-5rem)] overflow-hidden bg-surface px-8 py-20 flex items-center">
@@ -18,6 +20,24 @@ export default function FeatureUnavailable({
 
         <div className="relative max-w-5xl mx-auto w-full">
           <div className="bg-surface-container-high shadow-[0_20px_50px_rgba(17,14,8,0.45)] p-8 md:p-12 lg:p-16">
+            <button
+              onClick={() => router.back()}
+              className="bg-surface-container-lowest text-on-surface px-4 py-4 rounded-lg font-bold uppercase tracking-[0.2em] text-xs text-center hover:bg-surface-container-highest transition-colors"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+            </button>
             <div className="flex flex-col items-center text-center">
               <p className="font-headline text-4xl md:text-5xl font-black text-primary uppercase tracking-widest mb-3">
                 MAXIMUS

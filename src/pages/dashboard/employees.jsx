@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -179,6 +179,7 @@ const INITIAL_FORM = {
   username: "",
   email: "",
   password: "",
+  confirm_password: "",
 };
 
 function validate(form) {
@@ -198,6 +199,19 @@ function validate(form) {
 
   if (!form.password) {
     errors.password = "A senha é obrigatória.";
+  } else {
+    const hasLowercase = /[a-z]/.test(form.password);
+    const hasUppercase = /[A-Z]/.test(form.password);
+    const hasNumber = /[0-9]/.test(form.password);
+    const hasMinLength = form.password.length >= 8;
+
+    if (!hasLowercase || !hasUppercase || !hasNumber || !hasMinLength) {
+      errors.password = "A senha não atende aos requisitos.";
+    }
+  }
+
+  if (form.password !== form.confirm_password) {
+    errors.confirm_password = "As senhas não coincidem.";
   }
 
   // Paired time fields
@@ -223,8 +237,33 @@ function BarberForm({ onBarberCreated }) {
   const [touched, setTouched] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const errors = validate(form);
+
+  const passwordRules = useMemo(() => {
+    const hasLowercase = /[a-z]/.test(form.password);
+    const hasUppercase = /[A-Z]/.test(form.password);
+    const hasNumber = /[0-9]/.test(form.password);
+    const hasMinLength = form.password.length >= 8;
+
+    return {
+      hasLowercase,
+      hasUppercase,
+      hasNumber,
+      hasMinLength,
+    };
+  }, [form.password]);
+
+  const passwordsMatch =
+    form.password.length > 0 &&
+    form.confirm_password.length > 0 &&
+    form.password === form.confirm_password;
+
+  function ruleClass(isValid) {
+    return isValid ? "text-green-400" : "text-red-400";
+  }
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -535,19 +574,102 @@ function BarberForm({ onBarberCreated }) {
               <label htmlFor="password" className={labelClass()}>
                 Senha <span aria-hidden="true">*</span>
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="••••••••"
-                autoComplete="new-password"
-                className={`${fieldBase} ${fieldBorderClass("password")}`}
-              />
-              {showError("password") && (
-                <p className="mt-1.5 text-xs text-red-400">{errors.password}</p>
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  className={`${fieldBase} pr-10 ${fieldBorderClass("password")}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-primary transition-colors focus:outline-none"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    {showPassword ? "visibility_off" : "visibility"}
+                  </span>
+                </button>
+              </div>
+
+              {/* Password Rules */}
+              {(touched.password || form.password.length > 0) && (
+                <div className="mt-4 bg-surface-container-lowest border border-outline-variant/20 p-4 text-[11px]">
+                  <h3 className="font-bold text-on-surface mb-2">
+                    A senha deve conter:
+                  </h3>
+
+                  <p className={ruleClass(passwordRules.hasLowercase)}>
+                    Uma letra <b>minúscula</b>
+                  </p>
+
+                  <p className={ruleClass(passwordRules.hasUppercase)}>
+                    Uma letra <b>maiúscula</b>
+                  </p>
+
+                  <p className={ruleClass(passwordRules.hasNumber)}>
+                    Um <b>número</b>
+                  </p>
+
+                  <p className={ruleClass(passwordRules.hasMinLength)}>
+                    Mínimo de <b>8 caracteres</b>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Confirmar Senha */}
+            <div>
+              <label htmlFor="confirm_password" className={labelClass()}>
+                Confirmar Senha <span aria-hidden="true">*</span>
+              </label>
+
+              <div className="relative">
+                <input
+                  id="confirm_password"
+                  name="confirm_password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={form.confirm_password}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  className={`${fieldBase} pr-10 ${fieldBorderClass("confirm_password")}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-primary transition-colors focus:outline-none"
+                  aria-label={
+                    showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
+                  }
+                  title={
+                    showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
+                  }
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    {showConfirmPassword ? "visibility_off" : "visibility"}
+                  </span>
+                </button>
+              </div>
+
+              {touched.confirm_password && form.confirm_password.length > 0 && (
+                <p
+                  className={`mt-2 text-[10px] uppercase tracking-widest font-bold ${
+                    passwordsMatch ? "text-green-400" : "text-red-400"
+                  }`}
+                >
+                  {passwordsMatch
+                    ? "Senhas coincidem"
+                    : "As senhas não coincidem"}
+                </p>
               )}
             </div>
           </div>
@@ -780,7 +902,7 @@ export default function DashboardEmployeesPage() {
 
               <p className="text-sm text-on-surface-variant max-w-xs leading-relaxed">
                 Use o formulário ao lado para cadastrar o primeiro profissional
-                da equipe Maximus.
+                da equipe Emperor.
               </p>
             </div>
           )}

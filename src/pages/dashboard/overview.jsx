@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
@@ -27,6 +26,77 @@ function getAppointmentStatusLabel(status) {
 
 function isCancelledAppointment(status) {
   return status === "CANCELADO";
+}
+
+function isCancelledOrNoShowAppointment(status) {
+  return status === "CANCELADO" || status === "FALTOU";
+}
+
+function isConcludedByDateAndStatus(appointment, now) {
+  const isPast = new Date(appointment.appointment_datetime) < now;
+  const isNotCancelledOrNoShow = !isCancelledOrNoShowAppointment(
+    appointment.status,
+  );
+  return isPast && isNotCancelledOrNoShow;
+}
+
+function isAppointmentToday(appointment, now) {
+  const apptDate = new Date(appointment.appointment_datetime);
+  return (
+    apptDate.getDate() === now.getDate() &&
+    apptDate.getMonth() === now.getMonth() &&
+    apptDate.getFullYear() === now.getFullYear()
+  );
+}
+
+function getAppointmentRevenue(appointment) {
+  if (!appointment.services || appointment.services.length === 0) return 0;
+  return appointment.services.reduce((total, service) => {
+    return total + (Number(service.service_price) || 0);
+  }, 0);
+}
+
+function formatCurrencyBRL(value) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
+}
+
+function getDashboardStats(appointments, services, barbers) {
+  const now = new Date();
+  const stats = {
+    appointments: {
+      total: appointments.length,
+      concluded: 0,
+      cancelledOrNoShow: 0,
+      today: 0,
+    },
+    revenue: { total: 0, today: 0 },
+    resources: { services: services.length, barbers: barbers.length },
+  };
+
+  appointments.forEach((appt) => {
+    const isCancelledOrNoShow = isCancelledOrNoShowAppointment(appt.status);
+    const isToday = isAppointmentToday(appt, now);
+    const revenue = getAppointmentRevenue(appt);
+
+    if (isCancelledOrNoShow) {
+      stats.appointments.cancelledOrNoShow++;
+    } else {
+      if (isConcludedByDateAndStatus(appt, now)) {
+        stats.appointments.concluded++;
+      }
+      stats.revenue.total += revenue;
+
+      if (isToday) {
+        stats.appointments.today++;
+        stats.revenue.today += revenue;
+      }
+    }
+  });
+
+  return stats;
 }
 
 // ---------------------------------------------------------------------------
@@ -163,25 +233,38 @@ function AppointmentRow({
 
 export default function DashboardOverviewPage() {
   const [appointments, setAppointments] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState({
+    appointments: { total: 0, concluded: 0, cancelledOrNoShow: 0, today: 0 },
+    revenue: { total: 0, today: 0 },
+    resources: { services: 0, barbers: 0 },
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let mounted = true;
 
-    async function fetchAppointments() {
+    async function fetchData() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch("/api/v1/appointments");
 
-        if (!response.ok) {
+        const [appointmentsRes, servicesRes, barbersRes] = await Promise.all([
+          fetch("/api/v1/appointments"),
+          fetch("/api/v1/services").catch(() => ({ ok: false })),
+          fetch("/api/v1/barbers").catch(() => ({ ok: false })),
+        ]);
+
+        if (!appointmentsRes.ok) {
           throw new Error("Failed to fetch appointments");
         }
 
-        const data = await response.json();
+        const data = await appointmentsRes.json();
+        const servicesData = servicesRes.ok ? await servicesRes.json() : [];
+        const barbersData = barbersRes.ok ? await barbersRes.json() : [];
 
         if (mounted) {
+          setDashboardStats(getDashboardStats(data, servicesData, barbersData));
           // Note: Categorize based on browser's local time. Edge cases exist around midnight vs UTC.
           const now = new Date();
           const todayStart = new Date(
@@ -234,7 +317,7 @@ export default function DashboardOverviewPage() {
       }
     }
 
-    fetchAppointments();
+    fetchData();
 
     return () => {
       mounted = false;
@@ -270,68 +353,144 @@ export default function DashboardOverviewPage() {
                 <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
               </svg>
             </span>
-
-            <input
-              className="bg-surface-container-low border-0 border-b border-outline-variant/30 focus:border-primary focus:ring-0 text-[10px] font-label tracking-widest uppercase py-3 pl-10 pr-4 w-full lg:w-64 transition-all"
-              placeholder="PESQUISAR REGISTRO..."
-              type="text"
-            />
           </div>
         </div>
       </div>
 
-      {/* Hero Stats */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-        <StatCard
-          label="Receita Total Hoje"
-          value="$1,482"
-          subtitle="+12%"
-          progressPercent={75}
-        />
+      {/* Appointment Stats Section */}
+      <section className="mb-16">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-4 w-1 bg-primary" />
+            <span className="text-xs font-label uppercase tracking-[0.2em] text-primary">
+              Dados gerais de agendamentos
+            </span>
+          </div>
+          <p className="text-sm text-on-surface-variant font-medium">
+            Métricas totais de todos os agendamentos registrados no sistema.
+          </p>
+        </div>
 
-        <StatCard
-          label="Agendamentos Pendentes"
-          value="14"
-          footer={
-            <div className="flex gap-2">
-              <span className="w-2 h-2 bg-primary" />
-              <span className="w-2 h-2 bg-primary" />
-              <span className="w-2 h-2 bg-primary" />
-              <span className="w-2 h-2 bg-outline-variant/30" />
-              <span className="w-2 h-2 bg-outline-variant/30" />
-            </div>
-          }
-        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatCard
+            label="Total"
+            value={
+              loading ? (
+                <div className="h-10 w-10 border-4 border-primary/20 border-t-primary animate-spin rounded-full" />
+              ) : (
+                dashboardStats.appointments.total
+              )
+            }
+          />
+          <StatCard
+            label="Concluídos"
+            value={
+              loading ? (
+                <div className="h-10 w-10 border-4 border-primary/20 border-t-primary animate-spin rounded-full" />
+              ) : (
+                dashboardStats.appointments.concluded
+              )
+            }
+          />
+          <StatCard
+            label="Cancelados/Faltas"
+            value={
+              loading ? (
+                <div className="h-10 w-10 border-4 border-primary/20 border-t-primary animate-spin rounded-full" />
+              ) : (
+                dashboardStats.appointments.cancelledOrNoShow
+              )
+            }
+          />
+        </div>
+      </section>
 
-        <StatCard
-          label="Barbeiros Ativos"
-          value="02"
-          footer={
-            <div className="flex items-center gap-2">
-              <span className="text-on-surface-variant text-[10px] font-medium">
-                / 2 TOTAL
-              </span>
+      {/* Revenue Section */}
+      <section className="mb-16">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-4 w-1 bg-primary" />
+            <h3 className="text-xl font-headline font-bold text-on-surface">
+              Faturamento
+            </h3>
+          </div>
+          <p className="text-sm text-on-surface-variant font-medium">
+            Receita baseada nos valores dos serviços dos agendamentos
+            registrados. Cancelamentos e faltas não são contabilizados.
+          </p>
+        </div>
 
-              <div className="flex -space-x-2 ml-auto">
-                <Image
-                  className="object-cover grayscale border border-surface-container-low"
-                  src="/crossed_arms_barber.png"
-                  alt="Barber with arms crossed"
-                  width={32}
-                  height={32}
-                />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <StatCard
+            label="Faturamento Total"
+            value={
+              loading ? (
+                <div className="h-10 w-10 border-4 border-primary/20 border-t-primary animate-spin rounded-full" />
+              ) : (
+                formatCurrencyBRL(dashboardStats.revenue.total)
+              )
+            }
+          />
+          <StatCard
+            label="Faturamento Hoje"
+            value={
+              loading ? (
+                <div className="h-10 w-10 border-4 border-primary/20 border-t-primary animate-spin rounded-full" />
+              ) : (
+                formatCurrencyBRL(dashboardStats.revenue.today)
+              )
+            }
+          />
+        </div>
+      </section>
 
-                <Image
-                  className="object-cover grayscale border border-surface-container-low"
-                  src="/old_barber.png"
-                  alt="Elderly barber"
-                  width={32}
-                  height={32}
-                />
-              </div>
-            </div>
-          }
-        />
+      {/* General Operational Section */}
+      <section className="mb-16">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-4 w-1 bg-primary" />
+            <h3 className="text-xl font-headline font-bold text-on-surface">
+              Operacional
+            </h3>
+          </div>
+          <p className="text-sm text-on-surface-variant font-medium">
+            Visão geral da operação. Agendamentos válidos para hoje (excluindo
+            cancelamentos/faltas), além dos recursos ativos do sistema.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatCard
+            label="Agendamentos Hoje"
+            value={
+              loading ? (
+                <div className="h-10 w-10 border-4 border-primary/20 border-t-primary animate-spin rounded-full" />
+              ) : (
+                dashboardStats.appointments.today
+              )
+            }
+          />
+          <StatCard
+            label="Serviços Ativos"
+            value={
+              loading ? (
+                <div className="h-10 w-10 border-4 border-primary/20 border-t-primary animate-spin rounded-full" />
+              ) : (
+                dashboardStats.resources.services
+              )
+            }
+          />
+          <StatCard
+            label="Barbeiros Ativos"
+            value={
+              loading ? (
+                <div className="h-10 w-10 border-4 border-primary/20 border-t-primary animate-spin rounded-full" />
+              ) : (
+                dashboardStats.resources.barbers
+              )
+            }
+          />
+        </div>
       </section>
 
       {/* Table Section */}
@@ -346,7 +505,7 @@ export default function DashboardOverviewPage() {
 
           <Link
             href="/dashboard/appointments"
-            className="text-xs font-label uppercase tracking-widest text-primary border-b border-primary/20 hover:border-primary pb-1 transition-all"
+            className="text-xs font-label uppercase tracking-widest text-primary border-b border-primary/20 hover:border-primary pb-1 transition-all mr-4"
           >
             Ver Todos
           </Link>
