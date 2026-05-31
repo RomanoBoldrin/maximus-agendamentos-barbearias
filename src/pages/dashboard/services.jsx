@@ -169,8 +169,18 @@ function validate(formData) {
   return errors;
 }
 
-function ServiceForm({ onServiceCreated }) {
-  const [formData, setFormData] = useState(INITIAL_FORM);
+function ServiceForm({ serviceToEdit, onServiceCreated, onServiceUpdated, onCancelEdit }) {
+  const [formData, setFormData] = useState(() => {
+    if (serviceToEdit) {
+      return {
+        name: serviceToEdit.service_name,
+        description: serviceToEdit.service_description || "",
+        duration: String(serviceToEdit.duration),
+        price: String(serviceToEdit.price),
+      };
+    }
+    return INITIAL_FORM;
+  });
   const [touched, setTouched] = useState(INITIAL_TOUCHED);
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState(null);
@@ -201,8 +211,13 @@ function ServiceForm({ onServiceCreated }) {
     setApiError(null);
 
     try {
-      const res = await fetch("/api/v1/services", {
-        method: "POST",
+      const isEditMode = !!serviceToEdit;
+      const url = isEditMode 
+        ? `/api/v1/services/${serviceToEdit.service_id}`
+        : "/api/v1/services";
+      
+      const res = await fetch(url, {
+        method: isEditMode ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           service_name: formData.name.trim(),
@@ -215,12 +230,16 @@ function ServiceForm({ onServiceCreated }) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "Erro ao cadastrar serviço.");
+        throw new Error(data.message || `Erro ao ${isEditMode ? 'atualizar' : 'cadastrar'} serviço.`);
       }
 
-      onServiceCreated(data);
-      setFormData(INITIAL_FORM);
-      setTouched(INITIAL_TOUCHED);
+      if (isEditMode) {
+        onServiceUpdated(data);
+      } else {
+        onServiceCreated(data);
+        setFormData(INITIAL_FORM);
+        setTouched(INITIAL_TOUCHED);
+      }
     } catch (err) {
       setApiError(err.message);
     } finally {
@@ -357,22 +376,33 @@ function ServiceForm({ onServiceCreated }) {
         )}
 
         {/* Submit */}
-        <div className="pt-4">
+        <div className="pt-4 flex flex-col lg:flex-row gap-4">
           <button
             type="submit"
             disabled={submitting}
             className="w-full lg:w-max px-12 py-4 bg-primary text-on-primary font-bold text-xs uppercase tracking-widest transition-all hover:translate-x-1 active:translate-x-0 relative group focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-x-0"
           >
-            Cadastrar Serviço
+            {serviceToEdit ? "Salvar Alterações" : "Cadastrar Serviço"}
             <span className="absolute inset-0 border border-primary translate-x-2 translate-y-2 -z-10 group-hover:translate-x-3 group-hover:translate-y-3 transition-transform opacity-30" />
           </button>
+          
+          {serviceToEdit && (
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={onCancelEdit}
+              className="w-full lg:w-max px-8 py-4 bg-transparent text-on-surface border border-outline-variant/30 font-bold text-xs uppercase tracking-widest transition-all hover:bg-surface-container-highest focus:outline-none focus:ring-2 focus:ring-outline-variant/50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancelar edição
+            </button>
+          )}
         </div>
       </form>
 
       <LoadingDialog
         isOpen={submitting}
-        title="Cadastrando serviço"
-        description="Estamos registrando o novo serviço no sistema. Isso levará apenas um momento."
+        title={serviceToEdit ? "Atualizando serviço" : "Cadastrando serviço"}
+        description={serviceToEdit ? "Estamos atualizando os dados do serviço. Isso levará apenas um momento." : "Estamos registrando o novo serviço no sistema. Isso levará apenas um momento."}
       />
     </>
   );
@@ -422,13 +452,21 @@ export default function DashboardServicesPage() {
 
   function handleServiceEdit(service) {
     setSelectedServiceToEdit(service);
+  }
 
-    // TODO: Implement edit flow later.
-    // Example future behavior:
-    // - Open an edit modal
-    // - Fill the form with service data
-    // - Submit PUT/PATCH request
-    // - Update the local services list
+  function handleServiceUpdated(updatedService) {
+    setServices((prev) =>
+      prev.map((service) =>
+        service.service_id === updatedService.service_id
+          ? updatedService
+          : service
+      )
+    );
+    setSelectedServiceToEdit(null);
+  }
+
+  function handleCancelEdit() {
+    setSelectedServiceToEdit(null);
   }
 
   function handleServiceDeleteRequest(serviceId) {
@@ -489,28 +527,23 @@ export default function DashboardServicesPage() {
         <div className="lg:col-span-5 bg-surface-container-low p-8 lg:p-12 flex flex-col">
           <div className="mb-8">
             <h3 className="text-2xl font-headline font-semibold text-on-surface mb-2">
-              Adicionar Serviço
+              {selectedServiceToEdit ? "Editar Serviço" : "Adicionar Serviço"}
             </h3>
 
             <p className="text-sm text-on-surface-variant font-light leading-relaxed">
-              Cadastre um novo serviço disponível para agendamento. O serviço
-              será listado imediatamente após o cadastro.
+              {selectedServiceToEdit
+                ? "Edite os dados do serviço selecionado. As alterações serão salvas imediatamente."
+                : "Cadastre um novo serviço disponível para agendamento. O serviço será listado imediatamente após o cadastro."}
             </p>
-
-            {selectedServiceToEdit && (
-              <div className="mt-6 bg-surface-container-lowest p-4">
-                <p className="text-[10px] font-label uppercase tracking-widest text-primary mb-1">
-                  Serviço selecionado para edição
-                </p>
-
-                <p className="text-sm text-on-surface-variant">
-                  {selectedServiceToEdit.service_name}
-                </p>
-              </div>
-            )}
           </div>
 
-          <ServiceForm onServiceCreated={handleServiceCreated} />
+          <ServiceForm 
+            key={selectedServiceToEdit ? selectedServiceToEdit.service_id : "create"}
+            serviceToEdit={selectedServiceToEdit}
+            onServiceCreated={handleServiceCreated} 
+            onServiceUpdated={handleServiceUpdated}
+            onCancelEdit={handleCancelEdit}
+          />
         </div>
 
         {/* Right Column: Services List */}
