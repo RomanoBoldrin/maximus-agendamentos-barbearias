@@ -234,7 +234,12 @@ function validate(form, isEditMode) {
   return errors;
 }
 
-function BarberForm({ barberToEdit, onBarberCreated, onBarberUpdated, onCancelEdit }) {
+function BarberForm({
+  barberToEdit,
+  onBarberCreated,
+  onBarberUpdated,
+  onCancelEdit,
+}) {
   const [form, setForm] = useState(() => {
     if (barberToEdit) {
       return {
@@ -368,7 +373,10 @@ function BarberForm({ barberToEdit, onBarberCreated, onBarberUpdated, onCancelEd
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || `Erro ao ${isEditMode ? "atualizar" : "cadastrar"} barbeiro.`);
+        throw new Error(
+          data.message ||
+            `Erro ao ${isEditMode ? "atualizar" : "cadastrar"} barbeiro.`,
+        );
       }
 
       if (isEditMode) {
@@ -575,7 +583,9 @@ function BarberForm({ barberToEdit, onBarberCreated, onBarberUpdated, onCancelEd
                   className={`${fieldBase} ${fieldBorderClass("username")}`}
                 />
                 {showError("username") && (
-                  <p className="mt-1.5 text-xs text-red-400">{errors.username}</p>
+                  <p className="mt-1.5 text-xs text-red-400">
+                    {errors.username}
+                  </p>
                 )}
               </div>
 
@@ -621,7 +631,9 @@ function BarberForm({ barberToEdit, onBarberCreated, onBarberUpdated, onCancelEd
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-primary transition-colors focus:outline-none"
-                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    aria-label={
+                      showPassword ? "Ocultar senha" : "Mostrar senha"
+                    }
                     title={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   >
                     <span className="material-symbols-outlined text-[20px]">
@@ -691,17 +703,18 @@ function BarberForm({ barberToEdit, onBarberCreated, onBarberUpdated, onCancelEd
                   </button>
                 </div>
 
-                {touched.confirm_password && form.confirm_password.length > 0 && (
-                  <p
-                    className={`mt-2 text-[10px] uppercase tracking-widest font-bold ${
-                      passwordsMatch ? "text-green-400" : "text-red-400"
-                    }`}
-                  >
-                    {passwordsMatch
-                      ? "Senhas coincidem"
-                      : "As senhas não coincidem"}
-                  </p>
-                )}
+                {touched.confirm_password &&
+                  form.confirm_password.length > 0 && (
+                    <p
+                      className={`mt-2 text-[10px] uppercase tracking-widest font-bold ${
+                        passwordsMatch ? "text-green-400" : "text-red-400"
+                      }`}
+                    >
+                      {passwordsMatch
+                        ? "Senhas coincidem"
+                        : "As senhas não coincidem"}
+                    </p>
+                  )}
               </div>
             </div>
           </div>
@@ -727,7 +740,7 @@ function BarberForm({ barberToEdit, onBarberCreated, onBarberUpdated, onCancelEd
             {barberToEdit ? "Salvar Alterações" : "Cadastrar Profissional"}
             <span className="absolute inset-0 border border-primary translate-x-2 translate-y-2 -z-10 group-hover:translate-x-3 group-hover:translate-y-3 transition-transform opacity-30" />
           </button>
-          
+
           {barberToEdit && (
             <button
               type="button"
@@ -743,8 +756,14 @@ function BarberForm({ barberToEdit, onBarberCreated, onBarberUpdated, onCancelEd
 
       <LoadingDialog
         isOpen={submitting}
-        title={barberToEdit ? "Atualizando barbeiro" : "Cadastrando profissional"}
-        description={barberToEdit ? "Estamos atualizando os dados operacionais deste profissional." : "Estamos criando o perfil e o acesso ao sistema para o novo barbeiro."}
+        title={
+          barberToEdit ? "Atualizando barbeiro" : "Cadastrando profissional"
+        }
+        description={
+          barberToEdit
+            ? "Estamos atualizando os dados operacionais deste profissional."
+            : "Estamos criando o perfil e o acesso ao sistema para o novo barbeiro."
+        }
       />
     </>
   );
@@ -799,10 +818,8 @@ export default function DashboardEmployeesPage() {
   function handleBarberUpdated(updatedBarber) {
     setBarbers((prev) =>
       prev.map((barber) =>
-        barber.barber_id === updatedBarber.barber_id
-          ? updatedBarber
-          : barber
-      )
+        barber.barber_id === updatedBarber.barber_id ? updatedBarber : barber,
+      ),
     );
     setSelectedBarberToEdit(null);
   }
@@ -868,7 +885,9 @@ export default function DashboardEmployeesPage() {
         <div className="lg:col-span-5 bg-surface-container-low p-8 lg:p-12 flex flex-col">
           <div className="mb-8">
             <h3 className="text-2xl font-headline font-semibold text-on-surface mb-2">
-              {selectedBarberToEdit ? "Editar Barbeiro" : "Adicionar Novo Barbeiro"}
+              {selectedBarberToEdit
+                ? "Editar Barbeiro"
+                : "Adicionar Novo Barbeiro"}
             </h3>
 
             <p className="text-sm text-on-surface-variant font-light leading-relaxed">
@@ -878,8 +897,10 @@ export default function DashboardEmployeesPage() {
             </p>
           </div>
 
-          <BarberForm 
-            key={selectedBarberToEdit ? selectedBarberToEdit.barber_id : "create"}
+          <BarberForm
+            key={
+              selectedBarberToEdit ? selectedBarberToEdit.barber_id : "create"
+            }
             barberToEdit={selectedBarberToEdit}
             onBarberCreated={handleBarberCreated}
             onBarberUpdated={handleBarberUpdated}

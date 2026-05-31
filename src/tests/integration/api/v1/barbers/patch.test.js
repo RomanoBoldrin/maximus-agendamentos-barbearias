@@ -20,7 +20,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
           body: JSON.stringify({
             barber_name: "New Name",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(401);
@@ -51,7 +51,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
           body: JSON.stringify({
             barber_name: "New Name",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(403);
@@ -92,7 +92,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
           body: JSON.stringify({
             barber_name: "New Name",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -123,7 +123,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
           body: JSON.stringify({
             phone_number: "22888888888",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -152,7 +152,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
             work_start: "09:00",
             work_end: "17:00",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -183,7 +183,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
             lunch_start: "13:00",
             lunch_end: "14:00",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -217,7 +217,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
             work_start: "10:00",
             work_end: "20:00",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -250,7 +250,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
           body: JSON.stringify({
             barber_name: "Preserved Barber Updated",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -276,7 +276,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
             Cookie: `session_id=${adminSessionToken}`,
           },
           body: JSON.stringify({}),
-        }
+        },
       );
 
       expect(response.status).toBe(400);
@@ -301,7 +301,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
           body: JSON.stringify({
             barber_name: "Try Update",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(404);
@@ -330,7 +330,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
             access_level: "admin",
             is_active: false,
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -360,7 +360,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
           body: JSON.stringify({
             barber_name: "Shape Test Barber Updated",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -371,7 +371,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
           barber_id: barber.barberId,
           barber_name: "Shape Test Barber Updated",
           is_active: true,
-        })
+        }),
       );
       expect(responseBody.created_at).toBeDefined();
       expect(responseBody.updated_at).toBeDefined();
@@ -398,7 +398,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
           body: JSON.stringify({
             lunch_start: "12:00",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(400);
@@ -425,7 +425,7 @@ describe("PATCH /api/v1/barbers/[barber_id]", () => {
             lunch_start: "18:30",
             lunch_end: "19:30",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(400);

@@ -170,7 +170,9 @@ async function patchHandler(request, response) {
   }
 
   if (phone_number !== undefined) {
-    dataToUpdate.phoneNumber = phone_number ? String(phone_number).trim() : null;
+    dataToUpdate.phoneNumber = phone_number
+      ? String(phone_number).trim()
+      : null;
   }
 
   if (work_start !== undefined || work_end !== undefined) {

@@ -20,7 +20,7 @@ describe("PATCH /api/v1/services/[service_id]", () => {
           body: JSON.stringify({
             service_name: "New Name",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(401);
@@ -51,7 +51,7 @@ describe("PATCH /api/v1/services/[service_id]", () => {
           body: JSON.stringify({
             service_name: "New Name",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(403);
@@ -90,7 +90,7 @@ describe("PATCH /api/v1/services/[service_id]", () => {
           body: JSON.stringify({
             service_name: "New Name",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -122,7 +122,7 @@ describe("PATCH /api/v1/services/[service_id]", () => {
           body: JSON.stringify({
             service_description: "New description",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -149,7 +149,7 @@ describe("PATCH /api/v1/services/[service_id]", () => {
           body: JSON.stringify({
             duration: 45,
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -175,7 +175,7 @@ describe("PATCH /api/v1/services/[service_id]", () => {
           body: JSON.stringify({
             price: 75.5,
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -204,7 +204,7 @@ describe("PATCH /api/v1/services/[service_id]", () => {
             service_name: "New Name",
             duration: 60,
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -235,7 +235,7 @@ describe("PATCH /api/v1/services/[service_id]", () => {
           body: JSON.stringify({
             service_name: "Preserved Name Updated",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -260,7 +260,7 @@ describe("PATCH /api/v1/services/[service_id]", () => {
             Cookie: `session_id=${adminSessionToken}`,
           },
           body: JSON.stringify({}),
-        }
+        },
       );
 
       expect(response.status).toBe(400);
@@ -285,7 +285,7 @@ describe("PATCH /api/v1/services/[service_id]", () => {
           body: JSON.stringify({
             service_name: "Try Update",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(404);
@@ -309,7 +309,7 @@ describe("PATCH /api/v1/services/[service_id]", () => {
           body: JSON.stringify({
             service_name: "Updated shape",
           }),
-        }
+        },
       );
 
       expect(response.status).toBe(200);
@@ -320,7 +320,7 @@ describe("PATCH /api/v1/services/[service_id]", () => {
           service_id: service.serviceId,
           service_name: "Updated shape",
           is_active: true,
-        })
+        }),
       );
       expect(responseBody.created_at).toBeDefined();
       expect(responseBody.updated_at).toBeDefined();

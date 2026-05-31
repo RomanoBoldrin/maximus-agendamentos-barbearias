@@ -124,8 +124,7 @@ async function patchHandler(request, response) {
       !Number.isInteger(duration)
     ) {
       throw new ValidationError({
-        message:
-          "A duração do serviço deve ser um número inteiro positivo.",
+        message: "A duração do serviço deve ser um número inteiro positivo.",
         action: "Forneça uma duração válida.",
       });
     }
@@ -135,8 +134,7 @@ async function patchHandler(request, response) {
   if (price !== undefined) {
     if (isNaN(Number(price)) || Number(price) <= 0) {
       throw new ValidationError({
-        message:
-          "O preço do serviço deve ser um número positivo.",
+        message: "O preço do serviço deve ser um número positivo.",
         action: "Forneça um preço válido.",
       });
     }

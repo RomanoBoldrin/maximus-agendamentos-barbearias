@@ -169,7 +169,12 @@ function validate(formData) {
   return errors;
 }
 
-function ServiceForm({ serviceToEdit, onServiceCreated, onServiceUpdated, onCancelEdit }) {
+function ServiceForm({
+  serviceToEdit,
+  onServiceCreated,
+  onServiceUpdated,
+  onCancelEdit,
+}) {
   const [formData, setFormData] = useState(() => {
     if (serviceToEdit) {
       return {
@@ -212,10 +217,10 @@ function ServiceForm({ serviceToEdit, onServiceCreated, onServiceUpdated, onCanc
 
     try {
       const isEditMode = !!serviceToEdit;
-      const url = isEditMode 
+      const url = isEditMode
         ? `/api/v1/services/${serviceToEdit.service_id}`
         : "/api/v1/services";
-      
+
       const res = await fetch(url, {
         method: isEditMode ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
@@ -230,7 +235,10 @@ function ServiceForm({ serviceToEdit, onServiceCreated, onServiceUpdated, onCanc
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || `Erro ao ${isEditMode ? 'atualizar' : 'cadastrar'} serviço.`);
+        throw new Error(
+          data.message ||
+            `Erro ao ${isEditMode ? "atualizar" : "cadastrar"} serviço.`,
+        );
       }
 
       if (isEditMode) {
@@ -385,7 +393,7 @@ function ServiceForm({ serviceToEdit, onServiceCreated, onServiceUpdated, onCanc
             {serviceToEdit ? "Salvar Alterações" : "Cadastrar Serviço"}
             <span className="absolute inset-0 border border-primary translate-x-2 translate-y-2 -z-10 group-hover:translate-x-3 group-hover:translate-y-3 transition-transform opacity-30" />
           </button>
-          
+
           {serviceToEdit && (
             <button
               type="button"
@@ -402,7 +410,11 @@ function ServiceForm({ serviceToEdit, onServiceCreated, onServiceUpdated, onCanc
       <LoadingDialog
         isOpen={submitting}
         title={serviceToEdit ? "Atualizando serviço" : "Cadastrando serviço"}
-        description={serviceToEdit ? "Estamos atualizando os dados do serviço. Isso levará apenas um momento." : "Estamos registrando o novo serviço no sistema. Isso levará apenas um momento."}
+        description={
+          serviceToEdit
+            ? "Estamos atualizando os dados do serviço. Isso levará apenas um momento."
+            : "Estamos registrando o novo serviço no sistema. Isso levará apenas um momento."
+        }
       />
     </>
   );
@@ -459,8 +471,8 @@ export default function DashboardServicesPage() {
       prev.map((service) =>
         service.service_id === updatedService.service_id
           ? updatedService
-          : service
-      )
+          : service,
+      ),
     );
     setSelectedServiceToEdit(null);
   }
@@ -537,10 +549,14 @@ export default function DashboardServicesPage() {
             </p>
           </div>
 
-          <ServiceForm 
-            key={selectedServiceToEdit ? selectedServiceToEdit.service_id : "create"}
+          <ServiceForm
+            key={
+              selectedServiceToEdit
+                ? selectedServiceToEdit.service_id
+                : "create"
+            }
             serviceToEdit={selectedServiceToEdit}
-            onServiceCreated={handleServiceCreated} 
+            onServiceCreated={handleServiceCreated}
             onServiceUpdated={handleServiceUpdated}
             onCancelEdit={handleCancelEdit}
           />
