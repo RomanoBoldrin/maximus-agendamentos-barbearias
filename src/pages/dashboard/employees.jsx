@@ -182,36 +182,38 @@ const INITIAL_FORM = {
   confirm_password: "",
 };
 
-function validate(form) {
+function validate(form, isEditMode) {
   const errors = {};
 
   if (!form.barber_name.trim()) {
     errors.barber_name = "O nome do barbeiro é obrigatório.";
   }
 
-  if (!form.username.trim()) {
-    errors.username = "O nome de usuário é obrigatório.";
-  }
-
-  if (!form.email.trim()) {
-    errors.email = "O e-mail é obrigatório.";
-  }
-
-  if (!form.password) {
-    errors.password = "A senha é obrigatória.";
-  } else {
-    const hasLowercase = /[a-z]/.test(form.password);
-    const hasUppercase = /[A-Z]/.test(form.password);
-    const hasNumber = /[0-9]/.test(form.password);
-    const hasMinLength = form.password.length >= 8;
-
-    if (!hasLowercase || !hasUppercase || !hasNumber || !hasMinLength) {
-      errors.password = "A senha não atende aos requisitos.";
+  if (!isEditMode) {
+    if (!form.username.trim()) {
+      errors.username = "O nome de usuário é obrigatório.";
     }
-  }
 
-  if (form.password !== form.confirm_password) {
-    errors.confirm_password = "As senhas não coincidem.";
+    if (!form.email.trim()) {
+      errors.email = "O e-mail é obrigatório.";
+    }
+
+    if (!form.password) {
+      errors.password = "A senha é obrigatória.";
+    } else {
+      const hasLowercase = /[a-z]/.test(form.password);
+      const hasUppercase = /[A-Z]/.test(form.password);
+      const hasNumber = /[0-9]/.test(form.password);
+      const hasMinLength = form.password.length >= 8;
+
+      if (!hasLowercase || !hasUppercase || !hasNumber || !hasMinLength) {
+        errors.password = "A senha não atende aos requisitos.";
+      }
+    }
+
+    if (form.password !== form.confirm_password) {
+      errors.confirm_password = "As senhas não coincidem.";
+    }
   }
 
   // Paired time fields
@@ -232,15 +234,31 @@ function validate(form) {
   return errors;
 }
 
-function BarberForm({ onBarberCreated }) {
-  const [form, setForm] = useState(INITIAL_FORM);
+function BarberForm({ barberToEdit, onBarberCreated, onBarberUpdated, onCancelEdit }) {
+  const [form, setForm] = useState(() => {
+    if (barberToEdit) {
+      return {
+        barber_name: barberToEdit.barber_name,
+        phone_number: formatPhone(barberToEdit.phone_number || ""),
+        work_start: barberToEdit.work_start || "",
+        work_end: barberToEdit.work_end || "",
+        lunch_start: barberToEdit.lunch_start || "",
+        lunch_end: barberToEdit.lunch_end || "",
+        username: "",
+        email: "",
+        password: "",
+        confirm_password: "",
+      };
+    }
+    return INITIAL_FORM;
+  });
   const [touched, setTouched] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const errors = validate(form);
+  const errors = validate(form, !!barberToEdit);
 
   const passwordRules = useMemo(() => {
     const hasLowercase = /[a-z]/.test(form.password);
@@ -319,12 +337,20 @@ function BarberForm({ onBarberCreated }) {
     setApiError(null);
 
     try {
+      const isEditMode = !!barberToEdit;
+      const url = isEditMode
+        ? `/api/v1/barbers/${barberToEdit.barber_id}`
+        : "/api/v1/barbers";
+
       const body = {
         barber_name: form.barber_name.trim(),
-        username: form.username.trim(),
-        email: form.email.trim(),
-        password: form.password,
       };
+
+      if (!isEditMode) {
+        body.username = form.username.trim();
+        body.email = form.email.trim();
+        body.password = form.password;
+      }
 
       const phoneDigits = getPhoneDigits(form.phone_number);
       if (phoneDigits) body.phone_number = phoneDigits;
@@ -333,8 +359,8 @@ function BarberForm({ onBarberCreated }) {
       if (form.lunch_start) body.lunch_start = form.lunch_start;
       if (form.lunch_end) body.lunch_end = form.lunch_end;
 
-      const res = await fetch("/api/v1/barbers", {
-        method: "POST",
+      const res = await fetch(url, {
+        method: isEditMode ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
@@ -342,12 +368,16 @@ function BarberForm({ onBarberCreated }) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "Erro ao cadastrar barbeiro.");
+        throw new Error(data.message || `Erro ao ${isEditMode ? "atualizar" : "cadastrar"} barbeiro.`);
       }
 
-      onBarberCreated(data.barber);
-      setForm(INITIAL_FORM);
-      setTouched({});
+      if (isEditMode) {
+        onBarberUpdated(data);
+      } else {
+        onBarberCreated(data.barber);
+        setForm(INITIAL_FORM);
+        setTouched({});
+      }
     } catch (err) {
       setApiError(err.message);
     } finally {
@@ -521,159 +551,161 @@ function BarberForm({ onBarberCreated }) {
         </div>
 
         {/* ── Section 3: Acesso ao Sistema ── */}
-        <div>
-          <p className="text-[10px] font-label uppercase tracking-[0.2em] text-on-surface-variant/60 mb-4">
-            Acesso ao Sistema
-          </p>
+        {!barberToEdit && (
+          <div>
+            <p className="text-[10px] font-label uppercase tracking-[0.2em] text-on-surface-variant/60 mb-4">
+              Acesso ao Sistema
+            </p>
 
-          <div className="space-y-5">
-            {/* Username */}
-            <div>
-              <label htmlFor="username" className={labelClass()}>
-                Nome de Usuário <span aria-hidden="true">*</span>
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                value={form.username}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Ex: elias_barber"
-                autoComplete="username"
-                className={`${fieldBase} ${fieldBorderClass("username")}`}
-              />
-              {showError("username") && (
-                <p className="mt-1.5 text-xs text-red-400">{errors.username}</p>
-              )}
-            </div>
-
-            {/* Email */}
-            <div>
-              <label htmlFor="email" className={labelClass()}>
-                E-mail <span aria-hidden="true">*</span>
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="elias@maximusbarbers.com"
-                autoComplete="email"
-                className={`${fieldBase} ${fieldBorderClass("email")}`}
-              />
-              {showError("email") && (
-                <p className="mt-1.5 text-xs text-red-400">{errors.email}</p>
-              )}
-            </div>
-
-            {/* Password */}
-            <div>
-              <label htmlFor="password" className={labelClass()}>
-                Senha <span aria-hidden="true">*</span>
-              </label>
-              <div className="relative">
+            <div className="space-y-5">
+              {/* Username */}
+              <div>
+                <label htmlFor="username" className={labelClass()}>
+                  Nome de Usuário <span aria-hidden="true">*</span>
+                </label>
                 <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={form.password}
+                  id="username"
+                  name="username"
+                  type="text"
+                  value={form.username}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="••••••••"
-                  autoComplete="new-password"
-                  className={`${fieldBase} pr-10 ${fieldBorderClass("password")}`}
+                  placeholder="Ex: elias_barber"
+                  autoComplete="username"
+                  className={`${fieldBase} ${fieldBorderClass("username")}`}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-primary transition-colors focus:outline-none"
-                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                  title={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                >
-                  <span className="material-symbols-outlined text-[20px]">
-                    {showPassword ? "visibility_off" : "visibility"}
-                  </span>
-                </button>
+                {showError("username") && (
+                  <p className="mt-1.5 text-xs text-red-400">{errors.username}</p>
+                )}
               </div>
 
-              {/* Password Rules */}
-              {(touched.password || form.password.length > 0) && (
-                <div className="mt-4 bg-surface-container-lowest border border-outline-variant/20 p-4 text-[11px]">
-                  <h3 className="font-bold text-on-surface mb-2">
-                    A senha deve conter:
-                  </h3>
+              {/* Email */}
+              <div>
+                <label htmlFor="email" className={labelClass()}>
+                  E-mail <span aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="elias@maximusbarbers.com"
+                  autoComplete="email"
+                  className={`${fieldBase} ${fieldBorderClass("email")}`}
+                />
+                {showError("email") && (
+                  <p className="mt-1.5 text-xs text-red-400">{errors.email}</p>
+                )}
+              </div>
 
-                  <p className={ruleClass(passwordRules.hasLowercase)}>
-                    Uma letra <b>minúscula</b>
-                  </p>
-
-                  <p className={ruleClass(passwordRules.hasUppercase)}>
-                    Uma letra <b>maiúscula</b>
-                  </p>
-
-                  <p className={ruleClass(passwordRules.hasNumber)}>
-                    Um <b>número</b>
-                  </p>
-
-                  <p className={ruleClass(passwordRules.hasMinLength)}>
-                    Mínimo de <b>8 caracteres</b>
-                  </p>
+              {/* Password */}
+              <div>
+                <label htmlFor="password" className={labelClass()}>
+                  Senha <span aria-hidden="true">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={form.password}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    className={`${fieldBase} pr-10 ${fieldBorderClass("password")}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-primary transition-colors focus:outline-none"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    <span className="material-symbols-outlined text-[20px]">
+                      {showPassword ? "visibility_off" : "visibility"}
+                    </span>
+                  </button>
                 </div>
-              )}
-            </div>
 
-            {/* Confirmar Senha */}
-            <div>
-              <label htmlFor="confirm_password" className={labelClass()}>
-                Confirmar Senha <span aria-hidden="true">*</span>
-              </label>
+                {/* Password Rules */}
+                {(touched.password || form.password.length > 0) && (
+                  <div className="mt-4 bg-surface-container-lowest border border-outline-variant/20 p-4 text-[11px]">
+                    <h3 className="font-bold text-on-surface mb-2">
+                      A senha deve conter:
+                    </h3>
 
-              <div className="relative">
-                <input
-                  id="confirm_password"
-                  name="confirm_password"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={form.confirm_password}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  placeholder="••••••••"
-                  autoComplete="new-password"
-                  className={`${fieldBase} pr-10 ${fieldBorderClass("confirm_password")}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-primary transition-colors focus:outline-none"
-                  aria-label={
-                    showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
-                  }
-                  title={
-                    showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
-                  }
-                >
-                  <span className="material-symbols-outlined text-[20px]">
-                    {showConfirmPassword ? "visibility_off" : "visibility"}
-                  </span>
-                </button>
+                    <p className={ruleClass(passwordRules.hasLowercase)}>
+                      Uma letra <b>minúscula</b>
+                    </p>
+
+                    <p className={ruleClass(passwordRules.hasUppercase)}>
+                      Uma letra <b>maiúscula</b>
+                    </p>
+
+                    <p className={ruleClass(passwordRules.hasNumber)}>
+                      Um <b>número</b>
+                    </p>
+
+                    <p className={ruleClass(passwordRules.hasMinLength)}>
+                      Mínimo de <b>8 caracteres</b>
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {touched.confirm_password && form.confirm_password.length > 0 && (
-                <p
-                  className={`mt-2 text-[10px] uppercase tracking-widest font-bold ${
-                    passwordsMatch ? "text-green-400" : "text-red-400"
-                  }`}
-                >
-                  {passwordsMatch
-                    ? "Senhas coincidem"
-                    : "As senhas não coincidem"}
-                </p>
-              )}
+              {/* Confirmar Senha */}
+              <div>
+                <label htmlFor="confirm_password" className={labelClass()}>
+                  Confirmar Senha <span aria-hidden="true">*</span>
+                </label>
+
+                <div className="relative">
+                  <input
+                    id="confirm_password"
+                    name="confirm_password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={form.confirm_password}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    className={`${fieldBase} pr-10 ${fieldBorderClass("confirm_password")}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-primary transition-colors focus:outline-none"
+                    aria-label={
+                      showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
+                    }
+                    title={
+                      showConfirmPassword ? "Ocultar senha" : "Mostrar senha"
+                    }
+                  >
+                    <span className="material-symbols-outlined text-[20px]">
+                      {showConfirmPassword ? "visibility_off" : "visibility"}
+                    </span>
+                  </button>
+                </div>
+
+                {touched.confirm_password && form.confirm_password.length > 0 && (
+                  <p
+                    className={`mt-2 text-[10px] uppercase tracking-widest font-bold ${
+                      passwordsMatch ? "text-green-400" : "text-red-400"
+                    }`}
+                  >
+                    {passwordsMatch
+                      ? "Senhas coincidem"
+                      : "As senhas não coincidem"}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* API Error */}
         {apiError && (
@@ -686,22 +718,33 @@ function BarberForm({ onBarberCreated }) {
         )}
 
         {/* Submit */}
-        <div className="pt-2">
+        <div className="pt-2 flex flex-col lg:flex-row gap-4">
           <button
             type="submit"
             disabled={submitting}
             className="w-full lg:w-max px-12 py-4 bg-primary text-on-primary font-bold text-xs uppercase tracking-widest transition-all hover:translate-x-1 active:translate-x-0 relative group focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-x-0"
           >
-            Cadastrar Profissional
+            {barberToEdit ? "Salvar Alterações" : "Cadastrar Profissional"}
             <span className="absolute inset-0 border border-primary translate-x-2 translate-y-2 -z-10 group-hover:translate-x-3 group-hover:translate-y-3 transition-transform opacity-30" />
           </button>
+          
+          {barberToEdit && (
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={onCancelEdit}
+              className="w-full lg:w-max px-8 py-4 bg-transparent text-on-surface border border-outline-variant/30 font-bold text-xs uppercase tracking-widest transition-all hover:bg-surface-container-highest focus:outline-none focus:ring-2 focus:ring-outline-variant/50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancelar edição
+            </button>
+          )}
         </div>
       </form>
 
       <LoadingDialog
         isOpen={submitting}
-        title="Cadastrando profissional"
-        description="Estamos criando o perfil e o acesso ao sistema para o novo barbeiro."
+        title={barberToEdit ? "Atualizando barbeiro" : "Cadastrando profissional"}
+        description={barberToEdit ? "Estamos atualizando os dados operacionais deste profissional." : "Estamos criando o perfil e o acesso ao sistema para o novo barbeiro."}
       />
     </>
   );
@@ -751,13 +794,21 @@ export default function DashboardEmployeesPage() {
 
   function handleBarberEdit(barber) {
     setSelectedBarberToEdit(barber);
+  }
 
-    // TODO: Implement edit flow later.
-    // Example future behavior:
-    // - Open an edit modal
-    // - Fill the form with barber data
-    // - Submit PUT/PATCH request
-    // - Update the local barbers list
+  function handleBarberUpdated(updatedBarber) {
+    setBarbers((prev) =>
+      prev.map((barber) =>
+        barber.barber_id === updatedBarber.barber_id
+          ? updatedBarber
+          : barber
+      )
+    );
+    setSelectedBarberToEdit(null);
+  }
+
+  function handleCancelEdit() {
+    setSelectedBarberToEdit(null);
   }
 
   function handleBarberDeleteRequest(barberId) {
@@ -817,28 +868,23 @@ export default function DashboardEmployeesPage() {
         <div className="lg:col-span-5 bg-surface-container-low p-8 lg:p-12 flex flex-col">
           <div className="mb-8">
             <h3 className="text-2xl font-headline font-semibold text-on-surface mb-2">
-              Adicionar Novo Barbeiro
+              {selectedBarberToEdit ? "Editar Barbeiro" : "Adicionar Novo Barbeiro"}
             </h3>
 
             <p className="text-sm text-on-surface-variant font-light leading-relaxed">
-              Expanda o legado. Cadastre um novo profissional e crie seu acesso
-              ao sistema em uma única etapa.
+              {selectedBarberToEdit
+                ? "Edite os dados operacionais do profissional. As alterações serão salvas imediatamente."
+                : "Expanda o legado. Cadastre um novo profissional e crie seu acesso ao sistema em uma única etapa."}
             </p>
-
-            {selectedBarberToEdit && (
-              <div className="mt-6 bg-surface-container-lowest p-4">
-                <p className="text-[10px] font-label uppercase tracking-widest text-primary mb-1">
-                  Barbeiro selecionado para edição
-                </p>
-
-                <p className="text-sm text-on-surface-variant">
-                  {selectedBarberToEdit.barber_name}
-                </p>
-              </div>
-            )}
           </div>
 
-          <BarberForm onBarberCreated={handleBarberCreated} />
+          <BarberForm 
+            key={selectedBarberToEdit ? selectedBarberToEdit.barber_id : "create"}
+            barberToEdit={selectedBarberToEdit}
+            onBarberCreated={handleBarberCreated}
+            onBarberUpdated={handleBarberUpdated}
+            onCancelEdit={handleCancelEdit}
+          />
         </div>
 
         {/* Right Column: Barbers List */}
