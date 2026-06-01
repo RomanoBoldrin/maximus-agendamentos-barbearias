@@ -102,7 +102,16 @@ export function buildAppointmentDateTime(selectedDate, selectedTime) {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
 
-  appointmentDate.setHours(hours, mins, 0, 0);
+  // Extract date components based on the local calendar of the client device
+  const year = appointmentDate.getFullYear();
+  const month = String(appointmentDate.getMonth() + 1).padStart(2, "0");
+  const day = String(appointmentDate.getDate()).padStart(2, "0");
 
-  return appointmentDate.toISOString();
+  const hh = String(hours).padStart(2, "0");
+  const mm = String(mins).padStart(2, "0");
+
+  // Construct ISO 8601 string in the barbershop's timezone (America/Sao_Paulo: UTC-3)
+  const isoString = `${year}-${month}-${day}T${hh}:${mm}:00-03:00`;
+
+  return new Date(isoString).toISOString();
 }

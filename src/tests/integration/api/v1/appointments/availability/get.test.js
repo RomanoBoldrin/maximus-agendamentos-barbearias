@@ -118,6 +118,11 @@ describe("GET /api/v1/appointments/availability", () => {
 
       const body = await response.json();
 
+      // 17:00, 17:15, and 17:30 should be blocked
+      expect(body.blocked_slots).toContain("17:00");
+      expect(body.blocked_slots).toContain("17:15");
+      expect(body.blocked_slots).toContain("17:30");
+
       // 17:45 is the end boundary and should NOT be blocked
       expect(body.blocked_slots).not.toContain("17:45");
     });
