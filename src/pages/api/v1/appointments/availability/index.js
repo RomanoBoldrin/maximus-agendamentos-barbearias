@@ -89,9 +89,8 @@ async function getHandler(request, response) {
   // --- Build day boundaries ---
   // Construct date boundaries using the IANA timezone for the barbershop.
   // This avoids manual UTC offset calculations and handles DST automatically.
-  const dayStartLocal = new Date(`${date}T00:00:00`);
-  const dayEndLocal = new Date(dayStartLocal);
-  dayEndLocal.setDate(dayEndLocal.getDate() + 1);
+  const dayStartLocal = new Date(`${date}T00:00:00-03:00`);
+  const dayEndLocal = new Date(dayStartLocal.getTime() + 24 * 60 * 60 * 1000);
 
   // --- Query appointments that overlap the selected day ---
   const appointments = await db.appointment.findMany({
@@ -118,15 +117,15 @@ async function getHandler(request, response) {
     let currentMs = startMs;
 
     while (currentMs < endMs) {
-      const slotDate = new Date(currentMs);
+      const localDate = new Date(currentMs - 3 * 60 * 60 * 1000);
 
       // Only include slots that fall on the requested day
       if (
         currentMs >= dayStartLocal.getTime() &&
         currentMs < dayEndLocal.getTime()
       ) {
-        const hours = String(slotDate.getHours()).padStart(2, "0");
-        const minutes = String(slotDate.getMinutes()).padStart(2, "0");
+        const hours = String(localDate.getUTCHours()).padStart(2, "0");
+        const minutes = String(localDate.getUTCMinutes()).padStart(2, "0");
 
         blockedSet.add(`${hours}:${minutes}`);
       }
