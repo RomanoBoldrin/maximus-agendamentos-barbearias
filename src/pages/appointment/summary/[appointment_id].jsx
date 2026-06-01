@@ -231,7 +231,7 @@ export default function SummaryPage({ appointment: initialAppointment }) {
               <p className="text-on-surface-variant text-base md:text-lg leading-relaxed max-w-2xl">
                 {isCancelled
                   ? "O agendamento abaixo foi cancelado e não será realizado. Você pode criar um novo agendamento a qualquer momento."
-                  : "A Maximus recebeu sua solicitação. Confira os detalhes do seu atendimento."}
+                  : "A barbearia Emperor recebeu sua solicitação. Confira os detalhes do seu atendimento."}
               </p>
 
               {!isCancelled && (
@@ -405,7 +405,7 @@ export default function SummaryPage({ appointment: initialAppointment }) {
                     </p>
 
                     <p className="text-sm text-on-surface-variant leading-relaxed">
-                      Precisão, pontualidade e tradição em cada detalhe.
+                      Precisão e tradição em cada detalhe.
                     </p>
                   </div>
 
@@ -482,7 +482,7 @@ export default function SummaryPage({ appointment: initialAppointment }) {
                     <div>
                       <p className="font-headline text-2xl mb-1">Contato</p>
                       <p className="text-sm text-on-surface-variant">
-                        (00) 00000-0000
+                        (15) 00000-0000
                       </p>
                     </div>
                   </div>
