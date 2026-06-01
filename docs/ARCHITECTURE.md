@@ -30,9 +30,12 @@ Contains versioned API route handlers. Each endpoint is a module that exports a 
 - `users/` — User CRUD operations, user profiles
 - `status/` — App health checks
 - `[username]/` — Dynamic routes for user lookups
-- `barbers/` — GET (public) list active barbers
-- `services/` — GET (public) list active services
+- `barbers/` — GET (public) list active barbers, POST (protected/admin) create barber operational profile and linked User account
+- `barbers/[barber_id]/` — PATCH (protected/admin) update operational profile, DELETE (protected/admin) soft-delete barber profile, deactivate associated login, and cancel pending appointments
+- `services/` — GET (public) list active services, POST (protected/admin) create service
+- `services/[service_id]/` — PATCH (protected/admin) update service fields partially, DELETE (protected/admin) soft-delete service
 - `appointments/` — POST (public) create appointment, GET (protected) list appointments
+- `appointments/availability/` — GET (public) calculate blocked timeslots for a barber on a specific date
 
 Note: The API surface is designed around the single-barbershop MVP; do not introduce tenant-scoped endpoints or a `Barbershop` table unless the product scope changes.
 
@@ -161,6 +164,13 @@ The system separates authentication accounts (`User`) from operational profiles 
 
 Not every barber has a `User`. Admins create and link `User` accounts for barbers when they need login access. Do not expose a public barber self-registration flow.
 
+### Architectural & Profile Separation
+
+- **Barber** = operational scheduling profile.
+- **User** = authentication/account record.
+- **Independence of Changes**: Editing a `Barber` profile (via operational parameters) is not the same as editing the linked `User` account. A profile change MUST NOT touch authentication parameters.
+- **Credentials and Access Limits**: Credential setup (e.g., username, email, password) occurs strictly upon Barber creation. When modifying a Barber profile via the dashboard, credential/password editing fields are hidden, and `PATCH /api/v1/barbers/[barber_id]` does not handle or allow updating User credentials (such as password resets).
+
 ---
 
 ## Appointment Flow (Public)
@@ -202,18 +212,120 @@ The appointment record in the database is the single source of truth for confirm
 
 ---
 
-## Admin dashboard responsibilities
+## Services Management
 
-- `/dashboard/employees` — intended to manage barber profiles
-- `/dashboard/services` — intended to manage services (documented as the intended management page; describe as intended if a fully implemented page is not present)
-- `/dashboard/appointments` — intended to list and filter appointments
+This section documents the current implemented architecture for services management. Services represent the menu of procedures clients can select during booking.
 
-Notes:
+### API Endpoint Routes & Roles
 
-- Dashboard routes must be protected by session-based authentication and role checks.
-- Admins see all appointments.
-- Cancelled appointments remain visible in dashboard lists and should be clearly marked with status `Cancelado` and muted/grayed styling.
-- Barber users (when linked) should only see appointments where `User.linkedBarberId === Appointment.barberId`.
+- `GET /api/v1/services` — **Public**. Needed by the public booking page to display available choices. Returns only active services.
+- `POST /api/v1/services` — **Admin-Only**. Creates a new service.
+- `PATCH /api/v1/services/[service_id]` — **Admin-Only**. Performs a partial update to an existing active service.
+- `DELETE /api/v1/services/[service_id]` — **Admin-Only**. Soft-deletes a service.
+
+### Technical & Product Behaviors
+
+- **Partial Updates via PATCH**: Only fields supplied in the request body (`service_name`, `service_description`, `duration`, `price`) are updated; omitted fields are preserved. Empty request bodies yield a `400 ValidationError`.
+- **Soft Deletion**: The `DELETE` endpoint is idempotent and implements soft deletion. It changes the state field `isActive` to `false` instead of physically removing the row. Inactive/soft-deleted services cannot be updated via the `PATCH` endpoint (yields `404 NotFoundError`).
+- **Dashboard Integration**: Service creation and editing are handled on `/dashboard/services`. The left-side form handles both operations dynamically depending on whether a service is selected for editing.
+- **Service Modification Guidelines**: Admins may edit service names for corrections or minor improvements.
+
+> **Tip:** For a completely different service, creating a new service record and deactivating the old one is more appropriate to avoid corrupting historical analysis.
+>
+> Historical appointment data preserves the pricing snapshot at the booking time (`servicePrice` / `service_price` field in `appointment_services` table). Service name history, however, continues to depend on the linked `Service` record.
+
+---
+
+## Barber Management
+
+Operational scheduling profiles are separated from login accounts to support maximum flexibility in system access.
+
+### API Endpoint Routes & Roles
+
+- `GET /api/v1/barbers` — **Public**. Needed by the public booking page to fetch active operational profiles.
+- `POST /api/v1/barbers` — **Admin-Only**. Creates an operational `Barber` record and a linked `User` account with role `barber` within a single database transaction.
+- `PATCH /api/v1/barbers/[barber_id]` — **Admin-Only**. Partially updates the operational profile.
+- `DELETE /api/v1/barbers/[barber_id]` — **Admin-Only**. Soft-deletes the barber profile, deactivates the associated login, and cancels future bookings.
+
+### Technical & Product Behaviors
+
+- **Architectural Separation**: The `PATCH /api/v1/barbers/[barber_id]` endpoint updates _only_ operational scheduling profile fields:
+  - `barber_name`
+  - `phone_number`
+  - `work_start` / `work_end` (both must be supplied together, formatted in 24h `HH:MM`, with start before end)
+  - `lunch_start` / `lunch_end` (both must be supplied together, formatted in 24h `HH:MM`, with start before end, and must fall entirely inside the work schedule)
+- **Authentication Safeguards**: The profile PATCH endpoint explicitly ignores and **MUST NOT** allow editing linked `User` credentials or metadata fields, such as:
+  - `username`
+  - `email`
+  - `password`
+  - `access_level`
+  - `linked_barber_id`
+  - `is_active` (for the user model)
+- **Soft Deletion Cascade**: When an administrator deactivates/deletes a barber:
+  1. The `Barber.isActive` field is set to `false`.
+  2. The associated `User.isActive` field is set to `false` (if linked).
+  3. All future `AGENDADO` appointments for that barber are automatically cancelled (`status` set to `CANCELADO`).
+- **Dashboard Integration**: Management is located on `/dashboard/employees`. In edit mode, the left-side form hides user account creation fields (username, email, password, confirm_password) because Barber profile editing is isolated from User credential management. Admin-initiated barber password resets are treated as a separate future feature.
+
+---
+
+## Appointment Availability Endpoint
+
+Clients must be prevented from selecting invalid or double-booked slots on the public scheduling page.
+
+### Endpoint Route & Security Guardrails
+
+`GET /api/v1/appointments/availability?barber_id=<barber_id>&date=<YYYY-MM-DD>` — **Public**.
+
+> **Caution:** Because this is a public, unauthenticated endpoint, it **MUST NOT** expose sensitive customer, administrative, or operational data.
+>
+> - **Allowed fields in response**: `barber_id`, `date`, and `blocked_slots`.
+> - **Strictly Prohibited fields**: client name, client phone, full appointment objects, user records, or session data.
+
+### Availability & Duration Rules
+
+- **Blocked Slots Format**: Returns `blocked_slots` as an array of 24h `HH:MM` time strings (e.g., `["13:00", "13:15", "13:30"]`).
+- **Full-Duration Range Blocking**: Existing appointments block the _entire duration range_ they occupy, not just the exact start time. Blocked units are tracked in 15-minute steps.
+- **Exclusive End Boundary**: The appointment end time is exclusive.
+  - _Example_: An appointment scheduled for `17:00–17:45` blocks `17:00`, `17:15`, and `17:30`. The slot `17:45` is **not** blocked by this appointment.
+- **Status Ignorance**: Appointments with status `CANCELADO` or `FALTOU` **MUST NOT** block slots, allowing clients to rebook them immediately.
+- **Timezone Safety**: Local day boundaries are computed using the server's local/configured timezone rather than UTC offset math to automatically handle Daylight Saving Time (DST) transitions safely.
+- **Authoritative Source of Truth**: The backend appointment creation endpoint (`POST /api/v1/appointments`) remains the final, authoritative source of truth against race conditions or stale frontend availability.
+
+---
+
+## Public Booking Time-Slot Behavior
+
+The client-facing scheduler `/appointment/emperor-barbershop` orchestrates time-slot generation.
+
+### Rules & Operations
+
+1. **24-Hour Time Conventions**: The UI and scheduling logic exclusively use the 24h `HH:MM` format. AM/PM formatting is avoided.
+2. **Lunch Break Exclusion**: Selectable slots are generated by `generateTimeSlots` using barber work hours and service duration. Slots overlapping a barber's lunch break interval are automatically filtered out.
+3. **Past-Slot Blocking**: Slots occurring in the past relative to the current local browser time are disabled.
+4. **Invalid Time Deselection**: If the active calendar day is updated or a previously selected time becomes invalid (e.g. now blocked or in the past), the state variable `selectedTime` is immediately cleared.
+5. **Auto-Skip Empty Days**: When a client selects a day that has no available slots, the page automatically runs `searchNextAvailableDate` (looping up to 30 days ahead) to find the first day with at least one free slot. If found, it navigates to that date and displays a user-facing notice: _"A agenda desta data está completa. Mostramos o próximo dia disponível para você."_
+6. **Agenda Full Notice**: If no slots are found in the next 30 days, or a manually selected day is full, the scheduler shows an explicit notice (_"Não há horários disponíveis para esta data"_ or _"Não encontramos horários disponíveis nos próximos 30 dias"_).
+
+---
+
+## Admin Dashboard Responsibilities
+
+The protected dashboard provides full visibility and control over resources, staff, and appointments.
+
+### Main Views & Operations
+
+- `/dashboard/overview`:
+  - Displays real-time operational metrics.
+  - Shows total, concluded, and cancelled/no-show counters, alongside revenue metrics (Total and Today's) derived from active API appointments data.
+- `/dashboard/appointments`:
+  - Lists all appointments with filtering tabs (`Hoje`, `Próximos`, `Anteriores`).
+  - Offers dynamic frontend search matching input against **client name**, **service name**, or **barber name**.
+  - Allows admins to cancel an active appointment (triggers `DELETE /api/v1/appointments/[id]` under the hood, updating its status to `CANCELADO` and visually muting/graying out the row).
+- `/dashboard/services`:
+  - Admin form for service CRUD. Implements POST for creation, PATCH for partial updates, and DELETE for soft deletion.
+- `/dashboard/employees`:
+  - Admin form for employees CRUD. Implements POST for barber profile and system account provisioning. Implements PATCH for partial operational profile updates and DELETE for soft deactivation.
 
 ---
 
@@ -225,6 +337,18 @@ Notes:
 - Format decimal `price` values to two decimal places in JSON responses.
 - Public errors should be instances of the classes in `src/infra/errors.js` and include `action` guidance.
 - Do not expose `passwordHash` or raw session tokens in JSON.
+
+### PATCH vs PUT Conventions
+
+- **PATCH** is reserved for partial resource updates. The server updates only the fields provided in the body and preserves all omitted fields.
+- **PUT** is reserved strictly for full resource replacement semantics.
+- **HTTP Method**: Custom verbs like `UPDATE` are never used as HTTP methods.
+
+### Time & Timezone Formatting
+
+- Barber work schedules and client-facing interfaces must use the 24h `HH:MM` format.
+- For Brazilian localized displays, `HHhMM` (e.g., `08h00`) may be used when visually appropriate.
+- **Timezone Shifts Avoidance**: Avoid using methods like `toISOString().slice(0, 10)` for local calendar-day representation because it can cause timezone shifts depending on the environment offset. Always format dates using calendar-local components.
 
 ---
 
@@ -268,14 +392,33 @@ Note: Booking-specific helpers/components were moved under `src/features/appoint
 - Admin provisioning is intended to be performed via an internal provisioning process (seed script or manual DB provisioning). If a seed script is not present, do not assume it exists — document the intended approach and add an explicit seeding implementation as a separate task.
 - Tests use the orchestrator helpers under `src/tests/orchestrator/` to create users, sessions, barbers, services, clients, and appointments for integration testing.
 
+### Integration Test Scenarios
+
+Developers must maintain and execute the following test suites to verify system boundaries:
+
+1. **Services PATCH Integration Tests** (`services/patch.test.js`):
+   - Verifies 401 Unauthorized for anonymous users.
+   - Verifies 403 Forbidden for barber users attempting to modify services.
+   - Verifies admin users can partially update any service parameter (`service_name`, `service_description`, `duration`, `price`) independently, checking that omitted fields remain fully preserved.
+   - Verifies deactivation prevents subsequent updates (404).
+   - Verifies validation errors trigger 400 Bad Request for empty payloads or invalid values.
+2. **Barbers PATCH Integration Tests** (`barbers/patch.test.js`):
+   - Verifies admin users can modify operational parameters.
+   - Verifies system ignores and protects account credential fields (`username`, `email`, `password`, etc.) from being modified via the Barber profile PATCH flow.
+   - Verifies validation checks: pairing of schedule bounds, and ensuring lunch breaks are strictly nested within working hours.
+3. **Availability GET Integration Tests** (`availability/get.test.js`):
+   - Verifies that public GET does not expose sensitive customer names, phones, or full appointment records, returning _only_ active blockages.
+   - Verifies `CANCELADO` and `FALTOU` status appointments do not block availability.
+   - Verifies full duration-range blocking and exclusive end boundaries.
+
 ---
 
 ## Where new logic goes (reminder)
 
-1. New API endpoint: `src/pages/api/v1/<resource>/index.js` or `src/pages/api/v1/<resource>/<id>/index.js` using next-connect and infra helpers.
-2. Shared infra helper: `src/infra/`.
-3. Feature-specific frontend helpers/components: `src/features/<domain>/<feature>/`.
-4. Route pages: `src/pages/`.
+- 1. New API endpoint: `src/pages/api/v1/<resource>/index.js` or `src/pages/api/v1/<resource>/<id>/index.js` using next-connect and infra helpers.
+- 2. Shared infra helper: `src/infra/`.
+- 3. Feature-specific frontend helpers/components: `src/features/<domain>/<feature>/`.
+- 4. Route pages: `src/pages/`.
 
 ---
 

@@ -31,7 +31,9 @@
     "db:seed:dashboard:dev": "dotenv -e .env.development -- npm run db:seed:dashboard",
     "db:seed:dashboard:prod": "dotenv -e .env.production -- npm run db:seed:dashboard",
     "db:reset:development": "dotenv -e .env.development -- prisma migrate reset --force",
-    "db:reset:test": "dotenv -e .env.test -- prisma migrate reset --force"
+    "db:reset:test": "dotenv -e .env.test -- prisma migrate reset --force",
+    "db:reset:prod": "dotenv -e .env.production -- prisma migrate reset --force",
+    "prisma:studio": "dotenv -e .env.production -- npx prisma studio"
   },
   "author": "",
   "license": "MIT",
